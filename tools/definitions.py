@@ -248,7 +248,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             dividends = stock.dividends
             if not dividends.empty and len(dividends) > 0:
                 # Get annual dividends for last 3 years
-                annual_divs = dividends.resample('Y').sum()
+                annual_divs = dividends.resample('YE').sum()  # 'YE' = Year End (Y is deprecated)
                 recent_annual_divs = annual_divs.tail(3).tolist()
                 div_years = [d.strftime('%Y') for d in annual_divs.tail(3).index]
                 
