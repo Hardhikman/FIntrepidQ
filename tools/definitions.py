@@ -468,10 +468,103 @@ search_web_tool = StructuredTool.from_function(
 
 
 # Convenience export
+# =============================================================================
+# GOOGLE NEWS TOOL
+# =============================================================================
+
+class SearchResult(BaseModel):
+    title: str
+    url: str
+    published_date: str = ""
+
+def _parse_rss_content(xml_content: str, max_results: int) -> List[SearchResult]:
+    """Parse Google News RSS XML content."""
+    import xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+    
+    results = []
+    try:
+        root = ET.fromstring(xml_content)
+        for item in root.findall('.//item')[:max_results]:
+            title = item.find('title').text if item.find('title') is not None else "No title"
+            link = item.find('link').text if item.find('link') is not None else ""
+            pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ""
+            
+            results.append(SearchResult(title=title, url=link, published_date=pub_date))
+    except Exception as e:
+        print(f"Error parsing RSS: {e}")
+    
+    return results
+
+def _resolve_google_news_url(url: str) -> str:
+    if not url or 'news.google.com' not in url:
+        return url
+    try:
+        from googlenewsdecoder import gnewsdecoder
+        result = gnewsdecoder(url, interval=1)
+        if result.get("status"):
+            return result["decoded_url"]
+        return url
+    except ImportError:
+        print("Warning: googlenewsdecoder not installed. Returning original URL.")
+        return url
+    except Exception as e:
+        print(f"Error resolving URL {url}: {e}")
+        return url
+
+def _search_google_news(query: str, max_results: int = 5) -> List[Dict[str, str]]:
+    """
+    Search Google News for articles matching a given query.
+    """
+    import requests
+    from concurrent.futures import ThreadPoolExecutor
+    
+    print(f" [Google News] Searching for: {query}...")
+    
+    search_url = f"https://news.google.com/rss/search?q={query.replace(' ', '%20')}&hl=en-US&gl=US&ceid=US:en"
+
+    try:
+        response = requests.get(search_url, timeout=10)
+        if response.status_code != 200:
+            return []
+        
+        results = _parse_rss_content(response.text, max_results)
+        
+        urls_to_resolve = [result.url for result in results]
+        with ThreadPoolExecutor() as executor:
+            resolved_urls = list(executor.map(_resolve_google_news_url, urls_to_resolve))
+
+        final_results = []
+        for r, resolved in zip(results, resolved_urls):
+            final_results.append({
+                "title": r.title,
+                "url": resolved,
+                "published_date": r.published_date
+            })
+            
+        return final_results
+        
+    except Exception as e:
+        print(f"Error searching Google News: {e}")
+        return []
+
+search_google_news_tool = StructuredTool.from_function(
+    name="search_google_news",
+    description=(
+        "Search Google News for recent articles and current events. "
+        "Useful for finding latest news on companies, earnings, or specific topics."
+    ),
+    func=_search_google_news,
+)
+
+
+# Convenience export
 ALL_TOOLS = [
     make_plan_tool,
     load_skill_tool,
     get_deep_financials_tool,
     check_strategic_triggers_tool,
     search_web_tool,
+    search_google_news_tool,
 ]
+

@@ -1,48 +1,70 @@
 # IntrepidQ Equity Analysis
 
-**IntrepidQ Equity** is an AI-powered stock analysis tool that combines deep quantitative metrics with qualitative insights to provide comprehensive equity research reports.
+**IntrepidQ Equity** is an AI-powered multi-agent stock analysis system that combines deep quantitative metrics with qualitative insights to provide comprehensive, time-stamped equity research reports.
 
-## Features
+## 🎯 Overview
 
-*   **Deep Financial Analysis**: Fetches real-time data using `yfinance`.
-    *   **Fundamentals**: Revenue growth, margins, P/E, Debt/Equity, etc.
-    *   **Technicals**: RSI, MACD, SMA (50/200), Golden/Death Cross detection.
-    *   **Risk Metrics**: Volatility, Max Drawdown, Sharpe Ratio.
-    *   **Trends**: Quarterly revenue and debt trend analysis.
-*   **Qualitative Research**: Uses DuckDuckGo to search for strategic signals.
-    *   **Management**: CEO track record, vision, ethics.
-    *   **Macro**: Inflation, supply chain, interest rates.
-    *   **ESG**: Environmental, Social, and Governance factors.
-*   **AI Synthesis**: Uses a Deep Agent (LangChain) to synthesize data into a structured report with "Green Flags", "Red Flags", and a final "Verdict".
+The system uses a **4-agent pipeline** powered by Google Gemini and LangGraph:
 
-## Installation
+1. **Data Collection Agent** - Gathers financials, news, and strategic signals
+2. **Validation Agent** - Validates data completeness (0-100% score)
+3. **Analysis Agent** - Generates investment thesis with red/green flags
+4. **Synthesis Agent** - Compiles final time-stamped report
 
-1.  **Clone the repository**:
-    ```bash
-    git clone <repository-url>
-    cd Intrepidq_equity
-    ```
+## ✨ Features
 
-2.  **Create a virtual environment**:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-    ```
+### Quantitative Analysis
+- **Fundamentals**: Revenue growth, margins, P/E, Debt/Equity, ROE, FCF
+- **Technicals**: RSI, MACD, SMA (50/200), Golden/Death Cross detection
+- **Risk Metrics**: Volatility, Max Drawdown, Sharpe Ratio
+- **Trends**: Quarterly revenue and debt trend analysis with dates
 
-3.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+### Qualitative Research
+- **News Integration**: Google News search for recent events
+- **Web Search**: DuckDuckGo for strategic signals
+- **Management**: CEO track record, vision, ethics
+- **Macro**: Inflation, supply chain, interest rates
+- **ESG**: Environmental, Social, and Governance factors
 
-4.  **Set up Environment**:
-    Create a `.env` file with your API keys (if required for specific LLMs):
-    ```
-    GOOGLE_API_KEY=your_key_here
-    ```
+### Data Quality
+- **Validation System**: Automatic data completeness checking
+- **Confidence Scoring**: High/Medium/Low confidence levels
+- **Missing Metrics**: Identifies critical, optional, and advanced metrics gaps
 
-## Usage
+### Report Features
+- **Timeline Information**: Analysis date, fiscal quarter, data period
+- **Time-stamped Metrics**: All financial metrics include quarter/year
+- **Dated Events**: News and strategic signals with dates
+- **Structured Output**: Markdown format with Executive Summary, Analysis, and Verdict
 
-Run the analysis for a specific stock ticker:
+## 📦 Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd Intrepidq_equity
+   ```
+
+2. **Create a virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set up Environment**:
+   Create a `.env` file with your Google API key:
+   ```
+   GOOGLE_API_KEY=your_gemini_api_key_here
+   ```
+
+## 🚀 Usage
+
+Run analysis for a specific stock ticker:
 
 ```bash
 python main.py analyze TICKER
@@ -50,14 +72,110 @@ python main.py analyze TICKER
 
 **Example:**
 ```bash
-python main.py analyze TSLA
+python main.py analyze MSFT
 ```
 
-The report will be generated in the `reports/` directory.
+The report will be:
+- Displayed in the terminal with rich formatting
+- Saved to `reports/TICKER_TIMESTAMP.md`
+- Stored in the SQLite database
 
-## Project Structure
+**Options:**
+```bash
+# Analyze without saving to file
+python main.py analyze AAPL --no-save-file
 
-*   `main.py`: Entry point for the CLI application.
-*   `tools/definitions.py`: Defines the tools (Financials, Search, Planning).
-*   `context_engineering/skills/`: Contains the analysis logic (`SKILL.md`).
-*   `agents/`: Contains the agent construction logic.
+# Interactive chat mode
+python main.py chat
+```
+
+## 📊 Output Example
+
+Reports include:
+```markdown
+# MSFT - Equity Analysis Report
+
+## Report Metadata
+- **Analysis Date**: 2024-11-30
+- **Data Period**: Q3 2024
+- **Fiscal Quarter**: Q3 2024
+
+## Executive Summary
+- **Verdict**: Buy
+- Revenue growth of 18.4% (Q3 2024)
+- P/E ratio of 35.2 (Nov 2024)
+
+## Data Quality & Confidence
+- Completeness: 85%
+- Confidence: High
+```
+
+## 🏗️ Architecture
+
+### Project Structure
+```
+Intrepidq_equity/
+├── agents/                    # Multi-agent system
+│   ├── data_agent.py         # Data collection
+│   ├── validation_agent.py   # Quality validation
+│   ├── analysis_agent.py     # Investment analysis
+│   └── synthesis_agent.py    # Report synthesis
+├── context_engineering/       # Prompts and skills
+│   ├── prompts.py            # Agent prompts
+│   └── skills/               # Analysis frameworks
+├── tools/                     # Tool definitions
+│   ├── definitions.py        # Financial & news tools
+│   └── validation.py         # Data quality checks
+├── main.py                    # CLI entry point
+├── config.py                  # Configuration
+└── docs/                      # Documentation
+```
+
+### Multi-Agent Pipeline
+```
+┌─────────────────┐
+│ Data Collection │ → Financials, News, Web Search
+└────────┬────────┘
+         ↓
+┌─────────────────┐
+│   Validation    │ → Completeness Score, Confidence
+└────────┬────────┘
+         ↓
+┌─────────────────┐
+│    Analysis     │ → Investment Thesis, Red/Green Flags
+└────────┬────────┘
+         ↓
+┌─────────────────┐
+│   Synthesis     │ → Final Time-Stamped Report
+└─────────────────┘
+```
+
+## 🔧 Configuration
+
+Edit `config.py` to customize:
+- **Model**: Google Gemini model selection
+- **Temperature**: LLM creativity (0-1)
+- **User ID**: Default user identifier
+
+## 📚 Documentation
+
+See the `docs/` directory for detailed documentation:
+- [PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md) - Complete project overview
+- [validation_agent.md](docs/validation_agent.md) - Data quality system
+- [advanced_metrics.md](docs/advanced_metrics.md) - Metric definitions
+- [walkthrough.md](docs/walkthrough.md) - Feature walkthrough
+
+## 🛠️ Technologies
+
+- **LangGraph**: Multi-agent orchestration
+- **Google Gemini**: Large language model
+- **LangChain**: Agent framework
+- **yfinance**: Financial data
+- **DuckDuckGo**: Web search
+- **Google News**: News aggregation
+- **Typer**: CLI framework
+- **Rich**: Terminal formatting
+
+## 📄 License
+
+See LICENSE file for details.

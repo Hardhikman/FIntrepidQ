@@ -11,7 +11,7 @@ from rich.panel import Panel
 
 import config
 from context_engineering import memory
-from agents import build_deep_agent
+from context_engineering import memory
 
 
 app = typer.Typer()
@@ -149,135 +149,56 @@ def analyze(
     stream: bool = typer.Option(True, "--stream/--no-stream", help="Stream agent events in real-time")
 ):
     """
-    Run deep-agent-based analysis on a stock ticker.
+    Run multi-agent equity analysis on a stock ticker.
     
-    Args:
-        ticker: Stock ticker symbol (e.g., TSLA, AAPL, MSFT)
-        user_id: Optional user ID for tracking
-        save_file: Whether to save the report to a file (default: True)
-        stream: Whether to stream agent events in real-time (default: True)
+    Pipeline:
+    1. Data Collection Agent (Financials, News, Search)
+    2. Validation Agent (Data Quality Check)
+    3. Analysis Agent (Investment Thesis)
+    4. Synthesis Agent (Final Report)
     """
     user_id = user_id or config.DEFAULT_USER_ID
     ticker = ticker.upper().strip()
 
-    console.print(f"\n[bold blue]🚀 Deep Agent: Analyzing {ticker}...[/bold blue]\n")
+    console.print(f"\n[bold blue]🚀 Multi-Agent System: Analyzing {ticker}...[/bold blue]\n")
 
     session_id = f"analysis_{ticker}_{uuid.uuid4().hex[:6]}"
 
     async def _run():
         try:
-            agent = build_deep_agent()
+            from agents import (
+                run_data_collection,
+                run_validation,
+                run_analysis,
+                run_synthesis
+            )
             
-            # In LangGraph, we pass messages to the agent
-            # Format the system prompt and user message
-            from context_engineering import deep_prompt
-            from tools.validation import validate_data_completeness, format_validation_report
-            from tools.definitions import get_deep_financials_tool
+            # --- Step 1: Data Collection ---
+            console.print(Panel("[bold cyan]1. Data Collection Agent[/bold cyan]\nGathering financials, news, and strategic signals...", border_style="cyan"))
+            data_result = await run_data_collection(ticker)
+            console.print("[green]✓ Data Collection Complete[/green]\n")
             
-            # Pre-fetch financial data for validation
-            console.print("[dim]📊 Fetching financial data...[/dim]")
-            financial_result = get_deep_financials_tool.func(ticker)
+            # --- Step 2: Validation ---
+            console.print(Panel("[bold yellow]2. Validation Agent[/bold yellow]\nChecking data completeness and quality...", border_style="yellow"))
+            validation_result = await run_validation(ticker, data_result)
             
-            # Validate data completeness
-            if financial_result.get("status") == "success":
-                validation_result = validate_data_completeness(financial_result["data"])
-                validation_report = format_validation_report(validation_result, ticker)
-                
-                # Display data quality summary
-                console.print(f"[dim]Data Completeness: {validation_result['completeness_score']}% | Confidence: {validation_result['confidence_level']}[/dim]\n")
-                
-                # Inject validation context into prompt
-                data_quality_context = f"\n\n**DATA QUALITY CONTEXT:**\n{validation_report}\n"
-            else:
-                data_quality_context = "\n\n**DATA QUALITY WARNING:** Failed to fetch financial data.\n"
-                validation_report = ""
+            score = validation_result.get("completeness_score", 0)
+            confidence = validation_result.get("confidence_level", "Unknown")
+            console.print(f"[dim]Completeness: {score}% | Confidence: {confidence}[/dim]")
+            console.print("[green]✓ Validation Complete[/green]\n")
             
-            # Get the system message content from the prompt template
-            system_message_content = deep_prompt.messages[0].prompt.template + data_quality_context
-            user_message = f"Perform a deep equity analysis for ticker {ticker}."
-
-            if stream:
-                console.print("[yellow]🤖 Agent starting analysis with real-time streaming...[/yellow]\n")
-                
-                # Use astream_events for real-time streaming
-                final_text = ""
-                tool_calls_made = []
-                
-                async for event in agent.astream_events(
-                    {
-                        "messages": [
-                            {"role": "system", "content": system_message_content},
-                            {"role": "user", "content": user_message}
-                        ]
-                    },
-                    version="v1"
-                ):
-                    kind = event.get("event")
-                    
-                    # Tool call started
-                    if kind == "on_tool_start":
-                        tool_name = event.get("name", "unknown")
-                        tool_input = event.get("data", {}).get("input", {})
-                        
-                        # Format tool input nicely
-                        if isinstance(tool_input, dict):
-                            input_str = ", ".join([f"{k}={v}" for k, v in tool_input.items()])
-                        else:
-                            input_str = str(tool_input)
-                        
-                        console.print(f"[cyan]🔧 Calling tool:[/cyan] [bold]{tool_name}[/bold]")
-                        if input_str and input_str != "{}":
-                            console.print(f"   [dim]Input: {input_str}[/dim]")
-                        tool_calls_made.append(tool_name)
-                    
-                    # Tool call completed
-                    elif kind == "on_tool_end":
-                        tool_name = event.get("name", "unknown")
-                        console.print(f"[green]✓ Completed:[/green] {tool_name}\n")
-                    
-                    # LLM thinking/responding
-                    elif kind == "on_chat_model_start":
-                        console.print("[magenta]🧠 Agent thinking...[/magenta]")
-                    
-                    elif kind == "on_chat_model_stream":
-                        # Stream LLM tokens (optional - can be verbose)
-                        pass
-                    
-                    elif kind == "on_chat_model_end":
-                        console.print("[green]✓ Agent response complete[/green]\n")
-                    
-                    # Chain end - get final result
-                    elif kind == "on_chain_end":
-                        if event.get("data", {}).get("output"):
-                            output = event["data"]["output"]
-                            if isinstance(output, dict) and "messages" in output:
-                                last_msg = output["messages"][-1]
-                                final_text = _normalize_content(last_msg.content)
-                
-                # Summary of tools used
-                if tool_calls_made:
-                    console.print(f"[dim]📊 Tools used: {', '.join(set(tool_calls_made))}[/dim]\n")
+            # --- Step 3: Analysis ---
+            console.print(Panel("[bold magenta]3. Analysis Agent[/bold magenta]\nGenerating investment thesis and insights...", border_style="magenta"))
+            analysis_result = await run_analysis(ticker, data_result)
+            console.print("[green]✓ Analysis Complete[/green]\n")
             
-            else:
-                # Non-streaming mode (original behavior)
-                console.print("[yellow]🤖 Deep agent planning and calling tools...[/yellow]\n")
-                
-                result = await agent.ainvoke({
-                    "messages": [
-                        {"role": "system", "content": system_message_content},
-                        {"role": "user", "content": user_message}
-                    ]
-                })
-                
-                # Extract and normalize the final message
-                if isinstance(result, dict) and "messages" in result:
-                    last_msg = result["messages"][-1]
-                    final_text = _normalize_content(last_msg.content)
-                else:
-                    final_text = _normalize_content(result)
+            # --- Step 4: Synthesis ---
+            console.print(Panel("[bold green]4. Synthesis Agent[/bold green]\nCompiling final report...", border_style="green"))
+            final_report = await run_synthesis(ticker, analysis_result, validation_result, data_result)
+            console.print("[green]✓ Synthesis Complete[/green]\n")
             
             # Format the report
-            final_text = _format_report(final_text, ticker)
+            final_text = _format_report(final_report, ticker)
 
             # Display the report with rich formatting
             console.print("\n")
@@ -287,7 +208,7 @@ def analyze(
                 border_style="cyan",
                 padding=(1, 2)
             ))
-            console.print("\n[bold green]✅ Analysis Complete![/bold green]\n")
+            console.print("\n[bold green]✅ Multi-Agent Analysis Complete![/bold green]\n")
 
             # Save to database
             await memory.save_analysis_to_memory(
