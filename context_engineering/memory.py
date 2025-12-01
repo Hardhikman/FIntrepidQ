@@ -8,6 +8,9 @@ from typing import List, Optional, Dict, Any
 
 DB_PATH = "equity_ai.db"
 
+# Configuration
+REPORTS_TO_KEEP = 3  # Keep latest 3 reports per ticker
+
 
 def init_db() -> None:
     """Initialize the SQLite database and create tables if needed."""
@@ -28,6 +31,21 @@ def init_db() -> None:
             """
         )
 
+        # Add indexes for performance
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_ticker 
+            ON analysis_reports(ticker)
+            """
+        )
+        
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_ticker_created 
+            ON analysis_reports(ticker, created_at DESC)
+            """
+        )
+
         conn.commit()
 
 
@@ -35,13 +53,153 @@ def init_db() -> None:
 init_db()
 
 
+def cleanup_old_reports(ticker: str, keep_latest_n: int = REPORTS_TO_KEEP) -> int:
+    """
+    Delete old reports for a specific ticker, keeping only the latest N.
+    
+    Args:
+        ticker: Stock ticker symbol
+        keep_latest_n: Number of latest reports to keep (default: 3)
+    
+    Returns:
+        Number of reports deleted
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        
+        # Get IDs of reports to delete (all except latest N)
+        cur.execute(
+            """
+            SELECT id FROM analysis_reports
+            WHERE ticker = ?
+            ORDER BY created_at DESC
+            LIMIT -1 OFFSET ?
+            """,
+            (ticker.upper(), keep_latest_n)
+        )
+        
+        ids_to_delete = [row[0] for row in cur.fetchall()]
+        
+        if ids_to_delete:
+            placeholders = ','.join('?' * len(ids_to_delete))
+            cur.execute(
+                f"DELETE FROM analysis_reports WHERE id IN ({placeholders})",
+                ids_to_delete
+            )
+            conn.commit()
+            
+        return len(ids_to_delete)
+
+
+def cleanup_all_tickers(keep_latest_n: int = REPORTS_TO_KEEP) -> Dict[str, int]:
+    """
+    Cleanup old reports for all tickers.
+    
+    Args:
+        keep_latest_n: Number of latest reports to keep per ticker
+    
+    Returns:
+        Dictionary mapping ticker to number of reports deleted
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        
+        # Get all unique tickers
+        cur.execute("SELECT DISTINCT ticker FROM analysis_reports")
+        tickers = [row[0] for row in cur.fetchall()]
+    
+    results = {}
+    for ticker in tickers:
+        deleted_count = cleanup_old_reports(ticker, keep_latest_n)
+        if deleted_count > 0:
+            results[ticker] = deleted_count
+    
+    return results
+
+
+def get_report_count_by_ticker(ticker: str) -> int:
+    """
+    Get the number of reports for a specific ticker.
+    
+    Args:
+        ticker: Stock ticker symbol
+    
+    Returns:
+        Number of reports for the ticker
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM analysis_reports WHERE ticker = ?",
+            (ticker.upper(),)
+        )
+        return cur.fetchone()[0]
+
+
+def get_all_ticker_counts() -> List[Dict[str, Any]]:
+    """
+    Get report counts for all tickers.
+    
+    Returns:
+        List of dicts with ticker and count
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT ticker, COUNT(*) as count
+            FROM analysis_reports
+            GROUP BY ticker
+            ORDER BY count DESC, ticker ASC
+            """
+        )
+        rows = cur.fetchall()
+    
+    return [{"ticker": row[0], "count": row[1]} for row in rows]
+
+
+def delete_all_ticker_reports(ticker: str) -> int:
+    """
+    Delete all reports for a specific ticker.
+    
+    Args:
+        ticker: Stock ticker symbol
+    
+    Returns:
+        Number of reports deleted
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM analysis_reports WHERE ticker = ?",
+            (ticker.upper(),)
+        )
+        deleted = cur.rowcount
+        conn.commit()
+        
+    return deleted
+
+
+
 async def save_analysis_to_memory(
     session_id: str,
     user_id: str,
     ticker: str,
     report: str,
+    auto_cleanup: bool = True,
 ) -> None:
-    """Persist a completed analysis report."""
+    """
+    Persist a completed analysis report.
+    
+    Args:
+        session_id: Unique session identifier
+        user_id: User identifier
+        ticker: Stock ticker symbol
+        report: Analysis report content
+        auto_cleanup: Whether to automatically cleanup old reports (default: True)
+    """
+    ticker = ticker.upper()
+    
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
 
@@ -55,6 +213,13 @@ async def save_analysis_to_memory(
         )
 
         conn.commit()
+    
+    # Automatic cleanup: keep only latest N reports per ticker
+    if auto_cleanup:
+        deleted_count = cleanup_old_reports(ticker, REPORTS_TO_KEEP)
+        if deleted_count > 0:
+            print(f" [DB Cleanup] Deleted {deleted_count} old report(s) for {ticker}, keeping latest {REPORTS_TO_KEEP}")
+
 
 
 def get_latest_reports(user_id: str, limit: int = 5) -> List[Dict[str, Any]]:

@@ -17,3 +17,10 @@ TEMPERATURE = 0.0
 # Session/User defaults
 DEFAULT_USER_ID = "default_analyst"
 APP_NAME = "intrepidq_equity_deep_agent"
+
+# Database Retention Policy
+DB_RETENTION = {
+    "ACTIVE_REPORTS_PER_TICKER": 3,  # Keep latest 3 reports per ticker
+    "AUTO_CLEANUP_ENABLED": True      # Cleanup after each save
+}
+

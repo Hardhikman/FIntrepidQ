@@ -175,49 +175,117 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 "sharpe_ratio": sharpe,
             }
 
-        # --- 3. Financial Trends (Quarterly) ---
-        # Attempt to get quarterly financials for trend analysis
+        # --- 3. Financial Trends (Quarterly & Annual) ---
+        # Comprehensive trend analysis: both quarterly and annual
         financial_trends = {}
         try:
+            # ============= QUARTERLY TRENDS =============
             q_fin = stock.quarterly_financials
             q_bal = stock.quarterly_balance_sheet
             q_cf = stock.quarterly_cashflow
             
+            quarterly_data = {}
             if not q_fin.empty and not q_bal.empty:
                 # Extract dates and convert to string
                 quarter_dates = [d.strftime('%Y-%m-%d') for d in q_fin.columns[:4]] if not q_fin.empty else []
                 
-                # Revenue & Debt (existing)
+                # Revenue & Debt
                 recent_rev = q_fin.loc['Total Revenue'].head(4).tolist() if 'Total Revenue' in q_fin.index else []
                 recent_debt = q_bal.loc['Total Debt'].head(4).tolist() if 'Total Debt' in q_bal.index else []
                 
-                # CapEx Tracking (NEW)
+                # CapEx Tracking
                 recent_capex = []
                 if not q_cf.empty and 'Capital Expenditure' in q_cf.index:
                     recent_capex = q_cf.loc['Capital Expenditure'].head(4).tolist()
                 elif not q_cf.empty and 'Capital Expenditures' in q_cf.index:
                     recent_capex = q_cf.loc['Capital Expenditures'].head(4).tolist()
                 
-                capex_trend = "increasing" if len(recent_capex) > 1 and abs(recent_capex[0]) > abs(recent_capex[1]) else "decreasing"
-                
-                # Retained Earnings (NEW)
+                # Retained Earnings
                 recent_retained_earnings = []
                 if 'Retained Earnings' in q_bal.index:
                     recent_retained_earnings = q_bal.loc['Retained Earnings'].head(4).tolist()
                 
-                retained_earnings_trend = "increasing" if len(recent_retained_earnings) > 1 and recent_retained_earnings[0] > recent_retained_earnings[1] else "decreasing"
-
-                financial_trends = {
-                    "quarter_dates": quarter_dates, # [Newest, ..., Oldest]
+                # Net Income
+                recent_net_income = []
+                if 'Net Income' in q_fin.index:
+                    recent_net_income = q_fin.loc['Net Income'].head(4).tolist()
+                
+                quarterly_data = {
+                    "quarter_dates": quarter_dates,  # [Newest, ..., Oldest]
                     "revenue_quarters": recent_rev, 
                     "debt_quarters": recent_debt,
                     "capex_quarters": recent_capex,
                     "retained_earnings_quarters": recent_retained_earnings,
-                    "revenue_trend": "increasing" if len(recent_rev) > 1 and recent_rev[0] > recent_rev[1] else "decreasing",
-                    "debt_trend": "decreasing" if len(recent_debt) > 1 and recent_debt[0] < recent_debt[1] else "increasing",
-                    "capex_trend": capex_trend,
-                    "retained_earnings_trend": retained_earnings_trend
+                    "net_income_quarters": recent_net_income,
+                    # Quarterly trends (Q-o-Q)
+                    "revenue_trend_qoq": "increasing" if len(recent_rev) > 1 and recent_rev[0] > recent_rev[1] else "decreasing",
+                    "debt_trend_qoq": "decreasing" if len(recent_debt) > 1 and recent_debt[0] < recent_debt[1] else "increasing",
+                    "capex_trend_qoq": "increasing" if len(recent_capex) > 1 and abs(recent_capex[0]) > abs(recent_capex[1]) else "decreasing",
+                    "retained_earnings_trend_qoq": "increasing" if len(recent_retained_earnings) > 1 and recent_retained_earnings[0] > recent_retained_earnings[1] else "decreasing",
+                    "net_income_trend_qoq": "increasing" if len(recent_net_income) > 1 and recent_net_income[0] > recent_net_income[1] else "decreasing",
                 }
+            
+            # ============= ANNUAL TRENDS =============
+            a_fin = stock.financials  # Annual financials
+            a_bal = stock.balance_sheet  # Annual balance sheet
+            a_cf = stock.cashflow  # Annual cashflow
+            
+            annual_data = {}
+            if not a_fin.empty and not a_bal.empty:
+                # Extract year dates (last 3 years)
+                year_dates = [d.strftime('%Y') for d in a_fin.columns[:3]] if not a_fin.empty else []
+                
+                # Annual Revenue
+                annual_rev = a_fin.loc['Total Revenue'].head(3).tolist() if 'Total Revenue' in a_fin.index else []
+                
+                # Annual Debt
+                annual_debt = a_bal.loc['Total Debt'].head(3).tolist() if 'Total Debt' in a_bal.index else []
+                
+                # Annual CapEx
+                annual_capex = []
+                if not a_cf.empty and 'Capital Expenditure' in a_cf.index:
+                    annual_capex = a_cf.loc['Capital Expenditure'].head(3).tolist()
+                elif not a_cf.empty and 'Capital Expenditures' in a_cf.index:
+                    annual_capex = a_cf.loc['Capital Expenditures'].head(3).tolist()
+                
+                # Annual Retained Earnings
+                annual_retained_earnings = []
+                if 'Retained Earnings' in a_bal.index:
+                    annual_retained_earnings = a_bal.loc['Retained Earnings'].head(3).tolist()
+                
+                # Annual Net Income
+                annual_net_income = []
+                if 'Net Income' in a_fin.index:
+                    annual_net_income = a_fin.loc['Net Income'].head(3).tolist()
+                
+                # Annual Total Assets
+                annual_assets = []
+                if 'Total Assets' in a_bal.index:
+                    annual_assets = a_bal.loc['Total Assets'].head(3).tolist()
+                
+                annual_data = {
+                    "year_dates": year_dates,  # [Newest, ..., Oldest]
+                    "revenue_annual": annual_rev,
+                    "debt_annual": annual_debt,
+                    "capex_annual": annual_capex,
+                    "retained_earnings_annual": annual_retained_earnings,
+                    "net_income_annual": annual_net_income,
+                    "total_assets_annual": annual_assets,
+                    # Annual trends (Y-o-Y)
+                    "revenue_trend_yoy": "increasing" if len(annual_rev) > 1 and annual_rev[0] > annual_rev[1] else "decreasing",
+                    "debt_trend_yoy": "decreasing" if len(annual_debt) > 1 and annual_debt[0] < annual_debt[1] else "increasing",
+                    "capex_trend_yoy": "increasing" if len(annual_capex) > 1 and abs(annual_capex[0]) > abs(annual_capex[1]) else "decreasing",
+                    "retained_earnings_trend_yoy": "increasing" if len(annual_retained_earnings) > 1 and annual_retained_earnings[0] > annual_retained_earnings[1] else "decreasing",
+                    "net_income_trend_yoy": "increasing" if len(annual_net_income) > 1 and annual_net_income[0] > annual_net_income[1] else "decreasing",
+                    "assets_trend_yoy": "increasing" if len(annual_assets) > 1 and annual_assets[0] > annual_assets[1] else "decreasing",
+                }
+            
+            # Combine both quarterly and annual trends
+            financial_trends = {
+                "quarterly": quarterly_data,
+                "annual": annual_data,
+            }
+            
         except Exception as e:
             print(f"Warning: Could not fetch financial trends: {e}")
         

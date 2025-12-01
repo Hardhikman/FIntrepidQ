@@ -2,6 +2,12 @@
 Simple script to view and query the equity_ai.db SQLite database.
 """
 
+import sys
+import os
+
+# Add parent directory to path to allow imports from context_engineering
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import sqlite3
 from rich.console import Console
 from rich.table import Table
@@ -10,7 +16,7 @@ import typer
 app = typer.Typer()
 console = Console()
 
-DB_PATH = "equity_ai.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "equity_ai.db")
 
 
 @app.command()
@@ -104,6 +110,8 @@ def view_report(session_id: str = None, ticker: str = None, report_id: int = Non
 @app.command()
 def stats():
     """Show database statistics."""
+    from context_engineering.memory import get_all_ticker_counts
+    
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         
@@ -139,11 +147,22 @@ def stats():
         table = Table(title="Reports by Ticker")
         table.add_column("Ticker", style="yellow")
         table.add_column("Count", style="green")
+        table.add_column("Status", style="white")
         
+        excess_total = 0
         for ticker, count in by_ticker:
-            table.add_row(ticker, str(count))
+            if count > 3:
+                status = f"⚠️  {count - 3} excess"
+                excess_total += (count - 3)
+            else:
+                status = "✓ OK"
+            
+            table.add_row(ticker, str(count), status)
         
         console.print(table)
+        
+        if excess_total > 0:
+            console.print(f"\n[yellow]💡 {excess_total} excess report(s) found. Run: python db_fileops/db_maintenance.py cleanup[/yellow]")
     
     if by_user:
         console.print()
@@ -189,6 +208,37 @@ def query(sql: str):
     
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
+
+
+@app.command()
+def list_tickers():
+    """List all tickers in the database with report counts."""
+    from context_engineering.memory import get_all_ticker_counts
+    
+    ticker_counts = get_all_ticker_counts()
+    
+    if not ticker_counts:
+        console.print("[yellow]No tickers found in database[/yellow]")
+        return
+    
+    table = Table(title=f"All Tickers ({len(ticker_counts)} total)")
+    table.add_column("#", style="dim")
+    table.add_column("Ticker", style="cyan bold")
+    table.add_column("Reports", style="green")
+    table.add_column("Status", style="white")
+    
+    for idx, item in enumerate(ticker_counts, 1):
+        ticker = item["ticker"]
+        count = item["count"]
+        
+        if count > 3:
+            status = f"[yellow]⚠️  {count - 3} excess[/yellow]"
+        else:
+            status = "[green]✓ OK[/green]"
+        
+        table.add_row(str(idx), ticker, str(count), status)
+    
+    console.print(table)
 
 
 if __name__ == "__main__":
