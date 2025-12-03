@@ -62,6 +62,7 @@ The system uses a **4-agent pipeline** powered by Google Gemini and LangGraph:
    Create a `.env` file with your Google API key:
    ```
    GOOGLE_API_KEY=your_gemini_api_key_here
+   ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
    ```
 
 ## 🚀 Usage
@@ -90,12 +91,19 @@ python chat.py analyze AAPL --no-save-file
 # Analyze with real-time event streaming (default)
 python chat.py analyze GOOGL --stream
 
-# Interactive chat mode
+# Interactive chat mode (supports analysis command)
 python chat.py start
+# Then type: analyze TICKER
 
 # Database maintenance
 python db_fileops/db_maintenance.py stats
 ```
+
+### 🛡️ Human-in-the-Loop Verification
+The system now includes a **verification step** using Alpha Vantage data.
+- If significant discrepancies are found between Yahoo Finance and Alpha Vantage, the workflow **pauses**.
+- You will be prompted to resolve the conflict by selecting the preferred data source.
+- The analysis resumes automatically after resolution.
 
 ## 📊 Output Example
 

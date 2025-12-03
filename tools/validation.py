@@ -188,3 +188,93 @@ def format_validation_report(validation_result: Dict[str, Any], ticker: str) -> 
         report += "\n"
     
     return report
+
+
+def verify_data_accuracy(primary_data: Dict[str, Any], reference_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Compare primary data (Yahoo) with reference data (Alpha Vantage).
+    
+    Returns:
+        Dict containing:
+        - conflicts: List of Dicts with 'metric', 'primary_value', 'reference_value', 'diff_percent'
+        - verification_report: Text summary of the comparison
+    """
+    conflicts = []
+    report_lines = ["### 🛡️ Data Verification (Yahoo vs Alpha Vantage)"]
+    
+    # Helper to clean and parse float
+    def parse_val(val):
+        if val is None: return None
+        try:
+            return float(val)
+        except:
+            return None
+
+    # 1. Compare Current Price
+    y_price = parse_val(primary_data.get("current_price"))
+    
+    # AV data structure: data -> quote -> 05. price
+    av_quote = reference_data.get("quote", {})
+    av_price = parse_val(av_quote.get("05. price"))
+    
+    if y_price and av_price:
+        diff = abs(y_price - av_price) / ((y_price + av_price) / 2) * 100
+        if diff > 1.0: # > 1% difference
+            conflicts.append({
+                "metric": "current_price",
+                "primary_value": y_price,
+                "reference_value": av_price,
+                "diff_percent": diff
+            })
+            report_lines.append(f"❌ **Price Mismatch**: Yahoo=${y_price}, AV=${av_price} (Diff: {diff:.2f}%)")
+        else:
+            report_lines.append(f"✅ Price Verified: ${y_price} vs ${av_price}")
+            
+    # 2. Compare Market Cap
+    y_cap = parse_val(primary_data.get("market_cap"))
+    av_overview = reference_data.get("overview", {})
+    av_cap = parse_val(av_overview.get("MarketCapitalization"))
+    
+    if y_cap and av_cap:
+        diff = abs(y_cap - av_cap) / ((y_cap + av_cap) / 2) * 100
+        if diff > 5.0: # > 5% difference (Market cap can vary more due to share counts)
+            conflicts.append({
+                "metric": "market_cap",
+                "primary_value": y_cap,
+                "reference_value": av_cap,
+                "diff_percent": diff
+            })
+            report_lines.append(f"❌ **Market Cap Mismatch**: Yahoo={y_cap:,.0f}, AV={av_cap:,.0f} (Diff: {diff:.2f}%)")
+        else:
+            report_lines.append(f"✅ Market Cap Verified")
+
+    # 3. Compare P/E Ratio
+    y_pe = parse_val(primary_data.get("trailing_pe"))
+    av_pe = parse_val(av_overview.get("PERatio"))
+    
+    if y_pe and av_pe:
+        diff = abs(y_pe - av_pe) / ((y_pe + av_pe) / 2) * 100
+        if diff > 10.0: # > 10% difference (P/E often varies due to earnings calculation)
+            conflicts.append({
+                "metric": "trailing_pe",
+                "primary_value": y_pe,
+                "reference_value": av_pe,
+                "diff_percent": diff
+            })
+            report_lines.append(f"❌ **P/E Mismatch**: Yahoo={y_pe}, AV={av_pe} (Diff: {diff:.2f}%)")
+        else:
+            report_lines.append(f"✅ P/E Verified")
+            
+    # 4. Compare Revenue (TTM)
+    # Yahoo usually provides TTM revenue in 'totalRevenue' or similar, but our get_deep_financials might not have TTM explicitly
+    # Let's check 'revenue_growth' as a proxy for data freshness/alignment if direct revenue isn't easy to map
+    
+    if not conflicts:
+        report_lines.append("\n✨ No significant discrepancies found.")
+    else:
+        report_lines.append(f"\n⚠️ **{len(conflicts)} Conflict(s) Detected** - User Review Required.")
+
+    return {
+        "conflicts": conflicts,
+        "verification_report": "\n".join(report_lines)
+    }

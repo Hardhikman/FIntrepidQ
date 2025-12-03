@@ -150,15 +150,9 @@ def _extract_response_content(content: str | list) -> str:
         return "".join(text_parts)
     return str(content)
 
-@app.command()
-def analyze(
-    ticker: str,
-    user_id: str = None,
-    save_file: bool = typer.Option(True, "--save-file/--no-save-file", help="Save report to markdown file"),
-    stream: bool = typer.Option(True, "--stream/--no-stream", help="Stream agent events in real-time")
-):
+async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: bool = True):
     """
-    Run multi-agent equity analysis on a stock ticker.
+    Async implementation of the analysis workflow using LangGraph.
     """
     user_id = user_id or config.DEFAULT_USER_ID
     
@@ -173,43 +167,90 @@ def analyze(
 
     session_id = f"analysis_{ticker}_{uuid.uuid4().hex[:6]}"
 
-    async def _run():
-        try:
-            from agents import (
-                run_data_collection,
-                run_validation,
-                run_analysis,
-                run_synthesis
-            )
+    try:
+        from agents.graph import build_graph
+        from langchain_core.messages import Command
+        
+        app = build_graph()
+        
+        # Config for the graph execution
+        thread_id = str(uuid.uuid4())
+        graph_config = {"configurable": {"thread_id": thread_id}}
+        
+        initial_state = {"ticker": ticker}
+        
+        console.print("[bold cyan]🔄 Starting Workflow...[/bold cyan]")
+        
+        # Run the graph until the first interruption or completion
+        current_state = None
+        
+        # Initial run
+        async for event in app.astream(initial_state, graph_config, stream_mode="values"):
+            # Simple progress logging based on state keys
+            if "data_result" in event and "validation_result" not in event:
+                console.print("[green]✓ Data Collection Complete[/green]")
+            elif "validation_result" in event and "analysis_result" not in event:
+                    console.print("[green]✓ Validation Complete[/green]")
+                    # Check for conflicts in the event (snapshot)
+                    if event.get("conflicts"):
+                        console.print(f"[yellow]⚠️  {len(event['conflicts'])} Data Conflicts Detected![/yellow]")
+
+        # Check if we are interrupted
+        snapshot = app.get_state(graph_config)
+        
+        if snapshot.next:
+            # We are interrupted!
+            console.print("\n[bold red]🛑 Workflow Paused: Human Review Required[/bold red]")
             
-            # --- Step 1: Data Collection ---
-            console.print(Panel("[bold cyan]1. Data Collection Agent[/bold cyan]\nGathering financials, news, and strategic signals...", border_style="cyan"))
-            data_result = await run_data_collection(ticker)
-            console.print("[green]✓ Data Collection Complete[/green]\n")
+            state_values = snapshot.values
+            conflicts = state_values.get("conflicts", [])
+            data_result = state_values.get("data_result", {})
+            financial_data = data_result.get("financial_data", {})
             
-            # --- Step 2: Validation ---
-            console.print(Panel("[bold yellow]2. Validation Agent[/bold yellow]\nChecking data completeness and quality...", border_style="yellow"))
-            validation_result = await run_validation(ticker, data_result)
-            
-            score = validation_result.get("completeness_score", 0)
-            confidence = validation_result.get("confidence_level", "Unknown")
-            console.print(f"[dim]Completeness: {score}% | Confidence: {confidence}[/dim]")
-            console.print("[green]✓ Validation Complete[/green]\n")
-            
-            # --- Step 3: Analysis ---
-            console.print(Panel("[bold magenta]3. Analysis Agent[/bold magenta]\nGenerating investment thesis and insights...", border_style="magenta"))
-            analysis_result = await run_analysis(ticker, data_result)
-            console.print("[green]✓ Analysis Complete[/green]\n")
-            
-            # --- Step 4: Synthesis ---
-            console.print(Panel("[bold green]4. Synthesis Agent[/bold green]\nCompiling final report...", border_style="green"))
-            final_report = await run_synthesis(ticker, analysis_result, validation_result, data_result)
-            console.print("[green]✓ Synthesis Complete[/green]\n")
-            
-            # Format the report
+            if conflicts:
+                console.print(Panel(f"Found {len(conflicts)} discrepancies between Yahoo Finance and Alpha Vantage.", title="Conflict Resolution", border_style="red"))
+                
+                for conflict in conflicts:
+                    metric = conflict['metric']
+                    val_primary = conflict['primary_value']
+                    val_ref = conflict['reference_value']
+                    diff = conflict['diff_percent']
+                    
+                    console.print(f"\n[bold]Conflict for '{metric}' (Diff: {diff:.2f}%):[/bold]")
+                    console.print(f"1. Yahoo Finance: [cyan]{val_primary}[/cyan]")
+                    console.print(f"2. Alpha Vantage: [magenta]{val_ref}[/magenta]")
+                    
+                    choice = typer.prompt("Select source to use (1/2)", type=int)
+                    
+                    if choice == 2:
+                        console.print(f"[green]Updating {metric} to {val_ref}[/green]")
+                        financial_data[metric] = val_ref
+                    else:
+                        console.print(f"[dim]Keeping Yahoo Finance value: {val_primary}[/dim]")
+                
+                console.print("\n[bold cyan]🔄 Resuming Workflow...[/bold cyan]")
+                
+                # Update state and resume
+                data_result['financial_data'] = financial_data
+                
+                app.update_state(graph_config, {"data_result": data_result, "conflicts": []})
+                
+                # Continue execution
+                async for event in app.astream(None, graph_config, stream_mode="values"):
+                        if "analysis_result" in event and "final_report" not in event:
+                            console.print("[green]✓ Analysis Complete[/green]")
+                        elif "final_report" in event:
+                            console.print("[green]✓ Synthesis Complete[/green]")
+                            current_state = event
+
+        else:
+            current_state = snapshot.values
+
+        # Final Output
+        if current_state and "final_report" in current_state:
+            final_report = current_state["final_report"]
             final_text = _format_report(final_report, ticker)
 
-            # Display the report with rich formatting
             console.print("\n")
             console.print(Panel(
                 Markdown(final_text),
@@ -232,12 +273,22 @@ def analyze(
                 filepath = _save_report_to_file(final_text, ticker, session_id)
                 console.print(f"[dim]💾 Report saved to: {filepath}[/dim]\n")
 
-        except Exception as e:
-            console.print(f"\n[bold red]❌ ERROR:[/bold red] {e}\n")
-            import traceback
-            traceback.print_exc()
+    except Exception as e:
+        console.print(f"\n[bold red]❌ ERROR:[/bold red] {e}\n")
+        import traceback
+        traceback.print_exc()
 
-    asyncio.run(_run())
+@app.command()
+def analyze(
+    ticker: str,
+    user_id: str = None,
+    save_file: bool = typer.Option(True, "--save-file/--no-save-file", help="Save report to markdown file"),
+    stream: bool = typer.Option(True, "--stream/--no-stream", help="Stream agent events in real-time")
+):
+    """
+    Run multi-agent equity analysis on a stock ticker.
+    """
+    asyncio.run(run_analysis_workflow(ticker, user_id, save_file))
 
 
 async def run_chat_loop(initial_ticker: str | None = None) -> None:
@@ -284,7 +335,7 @@ async def run_chat_loop(initial_ticker: str | None = None) -> None:
             # Intercept 'analyze' command
             if user_input.lower().startswith("analyze "):
                 _, t = user_input.split(maxsplit=1)
-                analyze(t)
+                await run_analysis_workflow(t)
                 continue
                 
             if user_input.lower() == "/help":

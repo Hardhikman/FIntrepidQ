@@ -2,6 +2,7 @@
 Configuration for LangChain-based deep equity agent using Google Gemini.
 """
 
+import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -13,6 +14,9 @@ MODEL_NAME = "gemini-2.5-flash"
 
 # Temperature (0 = deterministic, higher = more creative)
 TEMPERATURE = 0.0
+
+# API Keys
+ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 
 # Session/User defaults
 DEFAULT_USER_ID = "default_analyst"
