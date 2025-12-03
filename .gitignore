@@ -20,3 +20,4 @@ equity_ai.db
 *.log
 *.txt
 docs/
+debug_validation.py

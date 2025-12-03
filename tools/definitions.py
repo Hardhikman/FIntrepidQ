@@ -8,7 +8,6 @@ from langchain_core.tools import StructuredTool
 
 
 import yfinance as yf
-#from duckduckgo_search import DDGS
 from ddgs import DDGS
 from cachetools import cached, TTLCache
 import pandas as pd
@@ -20,14 +19,11 @@ cache = TTLCache(maxsize=100, ttl=3600)
 
 
 # Base directory for skills
-# Adjusted path to look in the project root/context_engineering/skills
 SKILLS_DIR = Path(__file__).parent.parent / "context_engineering" / "skills"
 
 
 
-# =============================================================================
 # PLANNING TOOL (no-op TODO list)
-# =============================================================================
 
 
 def _make_plan(goal: str) -> List[str]:
@@ -64,9 +60,7 @@ make_plan_tool = StructuredTool.from_function(
 
 
 
-# =============================================================================
 # SKILL LOADER TOOL
-# =============================================================================
 
 
 def _load_skill(name: str) -> str:
@@ -100,9 +94,7 @@ load_skill_tool = StructuredTool.from_function(
 
 
 
-# =============================================================================
 # QUANT TOOL: DEEP FINANCIALS (YFINANCE)
-# =============================================================================
 
 
 @cached(cache)
@@ -123,7 +115,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
         stock = yf.Ticker(ticker)
         info = stock.info
         
-        # --- 1. Historical Data & Technicals ---
+        #1. Historical Data & Technicals 
         hist = stock.history(period="2y")
         technicals = {}
         risk_metrics = {}
@@ -157,7 +149,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 "macd_signal": signal.iloc[-1] if not np.isnan(signal.iloc[-1]) else None,
             }
             
-            # --- 2. Risk Metrics ---
+            #2. Risk Metrics 
             daily_returns = hist['Close'].pct_change().dropna()
             volatility = daily_returns.std() * np.sqrt(252)
             
@@ -169,17 +161,22 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             # Sharpe Ratio (Simplified, assuming 0% risk free for now)
             sharpe = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() != 0 else 0
             
+            # Value at Risk (VaR) - 95% confidence
+            # The 5th percentile of daily returns
+            var_95 = daily_returns.quantile(0.05)
+            
             risk_metrics = {
                 "volatility_annualized": volatility,
                 "max_drawdown": max_drawdown,
                 "sharpe_ratio": sharpe,
+                "value_at_risk_95": var_95,
             }
 
-        # --- 3. Financial Trends (Quarterly & Annual) ---
+        #3. Financial Trends (Quarterly & Annual)
         # Comprehensive trend analysis: both quarterly and annual
         financial_trends = {}
         try:
-            # ============= QUARTERLY TRENDS =============
+            #QUARTERLY TRENDS
             q_fin = stock.quarterly_financials
             q_bal = stock.quarterly_balance_sheet
             q_cf = stock.quarterly_cashflow
@@ -225,7 +222,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     "net_income_trend_qoq": "increasing" if len(recent_net_income) > 1 and recent_net_income[0] > recent_net_income[1] else "decreasing",
                 }
             
-            # ============= ANNUAL TRENDS =============
+            #ANNUAL TRENDS 
             a_fin = stock.financials  # Annual financials
             a_bal = stock.balance_sheet  # Annual balance sheet
             a_cf = stock.cashflow  # Annual cashflow
@@ -328,6 +325,36 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
         except Exception as e:
             print(f"Warning: Could not fetch dividend trends: {e}")
 
+        #6. ROCE Calculation (NEW)
+        # ROCE = EBIT / (Total Assets - Current Liabilities)
+        roce = None
+        try:
+            # Try to get from annual financials first
+            if not a_fin.empty and not a_bal.empty:
+                # EBIT
+                ebit = None
+                if 'EBIT' in a_fin.index:
+                    ebit = a_fin.loc['EBIT'].iloc[0]
+                elif 'Pretax Income' in a_fin.index and 'Interest Expense' in a_fin.index:
+                     # Approximation: EBIT ~ Pretax Income + Interest Expense
+                     ebit = a_fin.loc['Pretax Income'].iloc[0] + abs(a_fin.loc['Interest Expense'].iloc[0])
+
+                # Capital Employed
+                total_assets = a_bal.loc['Total Assets'].iloc[0] if 'Total Assets' in a_bal.index else None
+                current_liabilities = None
+                if 'Total Current Liabilities' in a_bal.index:
+                    current_liabilities = a_bal.loc['Total Current Liabilities'].iloc[0]
+                elif 'Current Liabilities' in a_bal.index: # Sometimes named differently
+                     current_liabilities = a_bal.loc['Current Liabilities'].iloc[0]
+                
+                if ebit is not None and total_assets is not None and current_liabilities is not None:
+                    capital_employed = total_assets - current_liabilities
+                    if capital_employed != 0:
+                        roce = ebit / capital_employed
+
+        except Exception as e:
+            print(f"Warning: Could not calculate ROCE: {e}")
+
         financial_data = {
             "ticker": ticker,
             # Basic Info
@@ -353,6 +380,10 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             # Returns
             "return_on_equity": info.get("returnOnEquity"),
             "return_on_assets": info.get("returnOnAssets"),
+            "return_on_capital_employed": roce,
+            
+            # Risk
+            "beta": info.get("beta"),
             
             # Debt & Cash
             "debt_to_equity": info.get("debtToEquity"),
@@ -392,9 +423,7 @@ get_deep_financials_tool = StructuredTool.from_function(
 
 
 
-# =============================================================================
 # NEWS TOOL: STRATEGIC TRIGGERS (DUCKDUCKGO)
-# =============================================================================
 
 
 def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
@@ -424,6 +453,10 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
         f"{ticker} macroeconomic impact interest rates inflation supply chain",
         f"{ticker} ESG environment social governance rating controversy",
         f"{ticker} insider trading management buying selling",
+
+        # Investor Relations & Transparency
+        f"{ticker} investor presentation earnings call transcript",
+        f"{ticker} annual report integrated report",
     ]
 
 
@@ -488,9 +521,7 @@ check_strategic_triggers_tool = StructuredTool.from_function(
 
 
 # Convenience export
-# =============================================================================
 # WEB SEARCH TOOL (GENERAL)
-# =============================================================================
 
 
 def _search_web(query: str) -> List[Dict[str, str]]:

@@ -70,6 +70,16 @@ The `get_deep_financials` tool provides the following metrics:
 - 🚩 High Risk: `max_drawdown < -0.50` (Lost >50% at some point)
 - 🟡 Moderate Risk: `volatility_annualized > 0.40` (High volatility)
 
+**Beta (NEW)**
+- 🟢 Low Volatility: `beta < 1.0` (Less volatile than market)
+- 🟡 High Volatility: `beta > 1.5` (More volatile than market)
+- 🚩 Very High Risk: `beta > 2.0`
+
+**Value at Risk (VaR 95%) (NEW)**
+- 🟢 Low Risk: `value_at_risk_95 > -0.02` (Worst day likely better than -2%)
+- 🟡 Moderate Risk: `-0.02 >= value_at_risk_95 > -0.04`
+- 🚩 High Risk: `value_at_risk_95 <= -0.04` (Expect >4% loss on bad days)
+
 ### 3. Financial Trends
 
 **Debt Trend**
@@ -107,6 +117,7 @@ The `get_deep_financials` tool provides the following metrics:
 **Growth & Profitability**
 - 🟢 Strong growth: `revenue_growth > 0.15`
 - 🟢 Strong ROE: `return_on_equity > 0.15`
+- 🟢 Strong ROCE: `return_on_capital_employed > 0.20` (Efficient capital use)
 - 🚩 Low margins: `profit_margins < 0.05`
 
 **Valuation**
@@ -137,6 +148,10 @@ The `check_strategic_triggers` tool now searches for:
 - "regulatory issues", "investigation", "lawsuit", "scandal"
 - "management turnover", "insider selling", "toxic culture"
 - "supply chain disruption", "inflationary pressure"
+
+**Investor Relations & Transparency (NEW)**
+- 🟢 **Green Flag**: Recent (last 3-6 months) "investor presentation", "earnings call transcript", or "annual report" found.
+- 🚩 **Red Flag**: No recent investor documents found, or latest are >1 year old.
 
 ## Output Format
 
