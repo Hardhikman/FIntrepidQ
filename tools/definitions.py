@@ -708,19 +708,19 @@ def resolve_ticker(query: str) -> str:
                 
             # Fallback to finding the most likely capitalized word if it looks like a ticker
             # This is a heuristic; might need refinement.
-            # Let's try to extract the first valid ticker-looking string
-            # that is NOT a common word.
             
-            # Simple approach: If user typed "Apple", and we find "AAPL", return AAPL.
-            # Let's just return the user query upper-cased if we can't be sure, 
-            # but usually the search result title has it.
+            # Common words to ignore in stock search results
+            ignore_words = {"NYSE", "NASDAQ", "STOCK", "SYMBOL", "PRICE", "QUOTE", "SHARE", "SHARES", "MARKET", "INDEX"}
             
             # Let's try a direct search for the symbol
             for word in text.split():
-                clean_word = word.strip('()[]{},.')
-                if clean_word.isupper() and 2 <= len(clean_word) <= 12 and clean_word != "NYSE" and clean_word != "NASDAQ":
-                     # Verify with yfinance to be sure? 
-                     # That might be too slow. Let's trust the search for now.
+                # Strip punctuation including colons
+                clean_word = word.strip('()[]{},.:;')
+                
+                if (clean_word.isupper() and 
+                    2 <= len(clean_word) <= 12 and 
+                    clean_word not in ignore_words and
+                    not any(char.isdigit() for char in clean_word)): # Tickers usually don't have digits (except some international)
                      return clean_word
                      
     except Exception as e:
