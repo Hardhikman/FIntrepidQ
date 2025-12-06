@@ -11,6 +11,26 @@ from tools.definitions import (
 )
 from context_engineering.prompts import data_agent_prompt
 import config
+import numpy as np
+
+def _convert_numpy_types(obj):
+    """Recursively convert numpy types to native Python types for serialization."""
+    if isinstance(obj, dict):
+        return {k: _convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, (np.integer,)):
+        return int(obj)
+    elif isinstance(obj, (np.floating,)):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return _convert_numpy_types(obj.tolist())
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    else:
+        return obj
 
 def build_data_agent():
     """
@@ -135,6 +155,9 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
             except Exception as e:
                 print(f"Error parsing financial data: {e}")
 
+    # Convert numpy types to native Python types for LangGraph serialization
+    financial_data = _convert_numpy_types(financial_data)
+    
     return {
         "ticker": ticker,
         "raw_output": output_content,

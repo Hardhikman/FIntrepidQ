@@ -278,3 +278,185 @@ def verify_data_accuracy(primary_data: Dict[str, Any], reference_data: Dict[str,
         "conflicts": conflicts,
         "verification_report": "\n".join(report_lines)
     }
+
+
+def fill_missing_from_alpha_vantage(primary_data: Dict[str, Any], av_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Fill missing metrics in primary (Yahoo) data using Alpha Vantage data.
+    
+    Args:
+        primary_data: Financial data from Yahoo Finance (may have missing fields)
+        av_data: Data from Alpha Vantage API
+        
+    Returns:
+        Dict containing:
+        - filled_data: Updated financial data with missing fields filled
+        - filled_metrics: List of metrics that were filled from Alpha Vantage
+        - fill_report: Text summary of what was filled
+    """
+    filled_data = primary_data.copy()
+    filled_metrics = []
+    report_lines = ["### 🔄 Data Enrichment (Alpha Vantage)"]
+    
+    # Helper to safely extract float values
+    def parse_val(val):
+        if val is None:
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
+    
+    # Get AV data sections
+    av_overview = av_data.get("overview", {})
+    av_quote = av_data.get("quote", {})
+    av_balance_sheet = av_data.get("balance_sheet", {})
+    av_income = av_data.get("income_statement", {})
+    av_cash_flow = av_data.get("cash_flow", {})
+    
+    # Get latest quarterly/annual reports if available
+    bs_reports = av_balance_sheet.get("quarterlyReports", []) or av_balance_sheet.get("annualReports", [])
+    latest_bs = bs_reports[0] if bs_reports else {}
+    
+    income_reports = av_income.get("quarterlyReports", []) or av_income.get("annualReports", [])
+    latest_income = income_reports[0] if income_reports else {}
+    
+    cf_reports = av_cash_flow.get("quarterlyReports", []) or av_cash_flow.get("annualReports", [])
+    latest_cf = cf_reports[0] if cf_reports else {}
+    
+    # --- Mapping: Yahoo field -> (AV source, AV field name, optional calculation) ---
+    
+    # 1. debt_to_equity - calculate from balance sheet
+    if not _check_metric_availability(filled_data, "debt_to_equity"):
+        total_debt = parse_val(latest_bs.get("shortLongTermDebtTotal")) or parse_val(latest_bs.get("longTermDebt"))
+        total_equity = parse_val(latest_bs.get("totalShareholderEquity"))
+        
+        if total_debt is not None and total_equity and total_equity != 0:
+            debt_to_equity = total_debt / total_equity
+            filled_data["debt_to_equity"] = round(debt_to_equity, 4)
+            filled_metrics.append("debt_to_equity")
+            report_lines.append(f"✅ Filled `debt_to_equity`: {debt_to_equity:.4f} (calculated from AV balance sheet)")
+        elif total_debt == 0 or total_debt is None:
+            # Check if there's any debt mentioned
+            short_debt = parse_val(latest_bs.get("shortTermDebt")) or 0
+            long_debt = parse_val(latest_bs.get("longTermDebt")) or 0
+            total_debt = short_debt + long_debt
+            if total_equity and total_equity != 0:
+                debt_to_equity = total_debt / total_equity
+                filled_data["debt_to_equity"] = round(debt_to_equity, 4)
+                filled_metrics.append("debt_to_equity")
+                report_lines.append(f"✅ Filled `debt_to_equity`: {debt_to_equity:.4f} (calculated from AV short+long term debt)")
+    
+    # 2. trailing_pe - from overview
+    if not _check_metric_availability(filled_data, "trailing_pe"):
+        av_pe = parse_val(av_overview.get("PERatio"))
+        if av_pe:
+            filled_data["trailing_pe"] = av_pe
+            filled_metrics.append("trailing_pe")
+            report_lines.append(f"✅ Filled `trailing_pe`: {av_pe}")
+    
+    # 3. forward_pe - from overview
+    if not _check_metric_availability(filled_data, "forward_pe"):
+        av_fwd_pe = parse_val(av_overview.get("ForwardPE"))
+        if av_fwd_pe:
+            filled_data["forward_pe"] = av_fwd_pe
+            filled_metrics.append("forward_pe")
+            report_lines.append(f"✅ Filled `forward_pe`: {av_fwd_pe}")
+    
+    # 4. peg_ratio - from overview
+    if not _check_metric_availability(filled_data, "peg_ratio"):
+        av_peg = parse_val(av_overview.get("PEGRatio"))
+        if av_peg:
+            filled_data["peg_ratio"] = av_peg
+            filled_metrics.append("peg_ratio")
+            report_lines.append(f"✅ Filled `peg_ratio`: {av_peg}")
+    
+    # 5. return_on_equity - from overview
+    if not _check_metric_availability(filled_data, "return_on_equity"):
+        av_roe = parse_val(av_overview.get("ReturnOnEquityTTM"))
+        if av_roe:
+            filled_data["return_on_equity"] = av_roe
+            filled_metrics.append("return_on_equity")
+            report_lines.append(f"✅ Filled `return_on_equity`: {av_roe}")
+    
+    # 6. return_on_assets - from overview
+    if not _check_metric_availability(filled_data, "return_on_assets"):
+        av_roa = parse_val(av_overview.get("ReturnOnAssetsTTM"))
+        if av_roa:
+            filled_data["return_on_assets"] = av_roa
+            filled_metrics.append("return_on_assets")
+            report_lines.append(f"✅ Filled `return_on_assets`: {av_roa}")
+    
+    # 7. profit_margins - from overview
+    if not _check_metric_availability(filled_data, "profit_margins"):
+        av_pm = parse_val(av_overview.get("ProfitMargin"))
+        if av_pm:
+            filled_data["profit_margins"] = av_pm
+            filled_metrics.append("profit_margins")
+            report_lines.append(f"✅ Filled `profit_margins`: {av_pm}")
+    
+    # 8. dividend_yield - from overview
+    if not _check_metric_availability(filled_data, "dividend_yield"):
+        av_div = parse_val(av_overview.get("DividendYield"))
+        if av_div:
+            filled_data["dividend_yield"] = av_div
+            filled_metrics.append("dividend_yield")
+            report_lines.append(f"✅ Filled `dividend_yield`: {av_div}")
+    
+    # 9. free_cash_flow - calculate from cash flow statement
+    if not _check_metric_availability(filled_data, "free_cash_flow"):
+        operating_cf = parse_val(latest_cf.get("operatingCashflow"))
+        capex = parse_val(latest_cf.get("capitalExpenditures"))
+        
+        if operating_cf is not None:
+            # CapEx is typically negative, but AV might report it as positive
+            capex = abs(capex) if capex else 0
+            fcf = operating_cf - capex
+            filled_data["free_cash_flow"] = fcf
+            filled_metrics.append("free_cash_flow")
+            report_lines.append(f"✅ Filled `free_cash_flow`: ${fcf:,.0f} (OCF - CapEx from AV)")
+    
+    # 10. operating_cashflow - from cash flow statement
+    if not _check_metric_availability(filled_data, "operating_cashflow"):
+        operating_cf = parse_val(latest_cf.get("operatingCashflow"))
+        if operating_cf:
+            filled_data["operating_cashflow"] = operating_cf
+            filled_metrics.append("operating_cashflow")
+            report_lines.append(f"✅ Filled `operating_cashflow`: ${operating_cf:,.0f}")
+    
+    # 11. revenue_growth - from overview
+    if not _check_metric_availability(filled_data, "revenue_growth"):
+        # AV has "QuarterlyRevenueGrowthYOY" 
+        av_rev_growth = parse_val(av_overview.get("QuarterlyRevenueGrowthYOY"))
+        if av_rev_growth:
+            filled_data["revenue_growth"] = av_rev_growth
+            filled_metrics.append("revenue_growth")
+            report_lines.append(f"✅ Filled `revenue_growth`: {av_rev_growth}")
+    
+    # 12. current_price - from quote
+    if not _check_metric_availability(filled_data, "current_price"):
+        av_price = parse_val(av_quote.get("05. price"))
+        if av_price:
+            filled_data["current_price"] = av_price
+            filled_metrics.append("current_price")
+            report_lines.append(f"✅ Filled `current_price`: ${av_price}")
+    
+    # 13. market_cap - from overview
+    if not _check_metric_availability(filled_data, "market_cap"):
+        av_mc = parse_val(av_overview.get("MarketCapitalization"))
+        if av_mc:
+            filled_data["market_cap"] = av_mc
+            filled_metrics.append("market_cap")
+            report_lines.append(f"✅ Filled `market_cap`: ${av_mc:,.0f}")
+    
+    # Summary
+    if filled_metrics:
+        report_lines.append(f"\n📊 **{len(filled_metrics)} metric(s) enriched from Alpha Vantage**")
+    else:
+        report_lines.append("\nℹ️ No missing metrics could be filled from Alpha Vantage.")
+    
+    return {
+        "filled_data": filled_data,
+        "filled_metrics": filled_metrics,
+        "fill_report": "\n".join(report_lines)
+    }

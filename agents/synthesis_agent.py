@@ -4,6 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from context_engineering.prompts import synthesis_agent_prompt
 import config
+from datetime import datetime
 
 def build_synthesis_agent():
     """
@@ -31,8 +32,12 @@ async def run_synthesis(ticker: str, analysis_result: Dict[str, Any], validation
     validation_report = validation_result.get("validation_report", "No validation report.")
     data_summary = data_result.get("raw_output", "No data summary.")
     
+    # Get current date for the report
+    current_date = datetime.now().strftime("%B %d, %Y")
+    
     final_report = await chain.ainvoke({
         "ticker": ticker,
+        "current_date": current_date,
         "analysis_output": analysis_output,
         "validation_report": validation_report,
         "data_summary": data_summary

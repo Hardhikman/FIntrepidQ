@@ -40,6 +40,14 @@ async def human_review_node(state: AgentState):
 async def analysis_node(state: AgentState):
     ticker = state["ticker"]
     data_result = state["data_result"]
+    validation_result = state.get("validation_result", {})
+    
+    # Use enriched data if available (data filled from Alpha Vantage)
+    enriched_data = validation_result.get("enriched_data")
+    if enriched_data:
+        # Replace the financial_data in data_result with enriched data
+        data_result = {**data_result, "financial_data": enriched_data}
+    
     result = await run_analysis(ticker, data_result)
     return {"analysis_result": result}
 

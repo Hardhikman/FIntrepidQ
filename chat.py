@@ -169,7 +169,6 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
 
     try:
         from agents.graph import build_graph
-        from langchain_core.messages import Command
         
         app = build_graph()
         

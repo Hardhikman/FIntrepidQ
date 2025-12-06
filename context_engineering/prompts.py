@@ -75,7 +75,7 @@ synthesis_agent_prompt = ChatPromptTemplate.from_messages([
      "# [Ticker] - Equity Analysis Report "
      "\n"
      "## Report Metadata "
-     "- **Analysis Date**: [Current date] "
+     "- **Analysis Date**: {current_date} "
      "- **Data Period**: [Most recent quarter/year from the data] "
      "- **Fiscal Quarter**: [e.g., Q3 2024, if available in data] "
      "\n"

@@ -287,7 +287,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
         except Exception as e:
             print(f"Warning: Could not fetch financial trends: {e}")
         
-        # --- 4. Volume Trends (NEW) ---
+        #4. Volume Trends (NEW)
         volume_trends = {}
         if not hist.empty and 'Volume' in hist.columns:
             # Calculate average volume for different periods
@@ -308,7 +308,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 "volume_trend": "increasing" if avg_volume_10d > avg_volume_50d else "decreasing"
             }
         
-        # --- 5. Dividend Yield Trend (NEW) ---
+        #5. Dividend Yield Trend (NEW)
         dividend_trends = {}
         try:
             dividends = stock.dividends
@@ -356,6 +356,36 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
         except Exception as e:
             print(f"Warning: Could not calculate ROCE: {e}")
 
+        # 7. Debt-to-Equity Calculation (Fallback)
+        # If info doesn't provide debt_to_equity, calculate from balance sheet
+        debt_to_equity_calculated = None
+        try:
+            # First try to get from info
+            debt_to_equity_calculated = info.get("debtToEquity")
+            
+            # If not available, calculate from balance sheet
+            if debt_to_equity_calculated is None and not a_bal.empty:
+                total_debt = info.get("totalDebt", 0) or 0
+                
+                # Get stockholders equity from balance sheet
+                stockholders_equity = None
+                if 'Stockholders Equity' in a_bal.index:
+                    stockholders_equity = a_bal.loc['Stockholders Equity'].iloc[0]
+                elif 'Total Stockholders Equity' in a_bal.index:
+                    stockholders_equity = a_bal.loc['Total Stockholders Equity'].iloc[0]
+                elif 'Total Equity Gross Minority Interest' in a_bal.index:
+                    stockholders_equity = a_bal.loc['Total Equity Gross Minority Interest'].iloc[0]
+                
+                if stockholders_equity is not None and stockholders_equity != 0:
+                    debt_to_equity_calculated = total_debt / stockholders_equity
+                    print(f" [Quant Tool] Calculated debt_to_equity: {debt_to_equity_calculated:.4f}")
+                elif total_debt == 0:
+                    # If no debt and no equity data, debt_to_equity is 0
+                    debt_to_equity_calculated = 0.0
+                    
+        except Exception as e:
+            print(f"Warning: Could not calculate debt_to_equity: {e}")
+
         financial_data = {
             "ticker": ticker,
             # Basic Info
@@ -387,7 +417,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             "beta": info.get("beta"),
             
             # Debt & Cash
-            "debt_to_equity": info.get("debtToEquity"),
+            "debt_to_equity": debt_to_equity_calculated,
             "total_debt": info.get("totalDebt"),
             "free_cash_flow": info.get("freeCashflow"),
             "operating_cashflow": info.get("operatingCashflow"),
