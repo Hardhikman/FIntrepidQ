@@ -1,17 +1,23 @@
 """
 IntrepidQ CLI Logger
-Provides Rich-formatted logging with pseudo-GUI feel for the CLI.
+Provides Rich-formatted logging with clean, professional CLI interface.
+Features: Status spinners, live progress tables, timing metrics.
 """
 
 import time
 from typing import Dict, Any, List, Optional
-from rich.console import Console
+from contextlib import contextmanager
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.text import Text
 from rich.tree import Tree
 from rich.style import Style
 from rich.layout import Layout
-from rich.box import DOUBLE
+from rich.box import DOUBLE, ROUNDED
+from rich.table import Table
+from rich.live import Live
+from rich.spinner import Spinner
+from rich.status import Status
 
 console = Console(width=100)
 
@@ -25,16 +31,111 @@ HEADER_ART = """
 [bold cyan]╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═════╝  ╚══▀▀═╝ [/]
 """
 
+# Phase definitions for the workflow
+PHASES = ["Data Collection", "Validation", "Analysis", "Synthesis"]
+
+
+class PhaseTracker:
+    """Tracks progress and timing for each phase of the workflow."""
+    
+    def __init__(self):
+        self.phases: Dict[str, Dict[str, Any]] = {}
+        self.current_phase: Optional[str] = None
+        self.ticker: str = ""
+        
+    def reset(self, ticker: str):
+        """Reset tracker for a new analysis run."""
+        self.ticker = ticker
+        self.phases = {
+            phase: {"status": "pending", "start_time": None, "end_time": None, "details": []}
+            for phase in PHASES
+        }
+        self.current_phase = None
+        
+    def start_phase(self, phase: str):
+        """Mark a phase as started."""
+        if phase in self.phases:
+            self.phases[phase]["status"] = "active"
+            self.phases[phase]["start_time"] = time.time()
+            self.current_phase = phase
+            
+    def complete_phase(self, phase: str):
+        """Mark a phase as completed."""
+        if phase in self.phases:
+            self.phases[phase]["status"] = "done"
+            self.phases[phase]["end_time"] = time.time()
+            if self.current_phase == phase:
+                self.current_phase = None
+                
+    def add_detail(self, phase: str, detail: str):
+        """Add a detail message to a phase."""
+        if phase in self.phases:
+            self.phases[phase]["details"].append(detail)
+            
+    def get_elapsed(self, phase: str) -> str:
+        """Get elapsed time for a phase."""
+        if phase not in self.phases:
+            return "-"
+        p = self.phases[phase]
+        if p["status"] == "pending":
+            return "-"
+        elif p["status"] == "active":
+            elapsed = time.time() - p["start_time"]
+            return f"{elapsed:.1f}s"
+        else:  # done
+            elapsed = p["end_time"] - p["start_time"]
+            return f"{elapsed:.1f}s"
+            
+    def get_status_icon(self, phase: str) -> str:
+        """Get status icon for a phase."""
+        if phase not in self.phases:
+            return "○"
+        status = self.phases[phase]["status"]
+        if status == "pending":
+            return "[dim]○[/dim]"
+        elif status == "active":
+            return "[yellow]◉[/yellow]"
+        else:  # done
+            return "[green]✓[/green]"
+            
+    def build_progress_table(self) -> Table:
+        """Build the progress tracking table."""
+        table = Table(
+            title=f"[bold]IntrepidQ Analysis: {self.ticker}[/bold]",
+            box=ROUNDED,
+            show_header=True,
+            header_style="bold cyan",
+            width=70
+        )
+        table.add_column("Phase", style="white", width=20)
+        table.add_column("Status", justify="center", width=12)
+        table.add_column("Time", justify="right", width=10)
+        table.add_column("Details", style="dim", width=25)
+        
+        for phase in PHASES:
+            icon = self.get_status_icon(phase)
+            elapsed = self.get_elapsed(phase)
+            details = self.phases.get(phase, {}).get("details", [])
+            detail_str = details[-1] if details else ""
+            if len(detail_str) > 25:
+                detail_str = detail_str[:22] + "..."
+            table.add_row(phase, icon, elapsed, detail_str)
+            
+        return table
+
+
 class IntrepidQLogger:
     """
     Manages structured logging for the IntrepidQ application.
-    Uses Rich to create a visual tree of execution.
+    Features clean progress visualization with spinners and live tables.
     """
     
-    def __init__(self):
+    def __init__(self, verbose: bool = False):
         self.console = console
-        self.current_tree = None
-        self.current_task_node = None
+        self.verbose = verbose
+        self.tracker = PhaseTracker()
+        self._live: Optional[Live] = None
+        self._status: Optional[Status] = None
         
     def print_header(self):
         """Print the application header."""
@@ -47,15 +148,55 @@ class IntrepidQLogger:
         self.console.print(HEADER_ART)
         self.console.print(Text("Your AI assistant for equity analysis.\n", justify="center", style="dim"))
 
+    def start_analysis(self, ticker: str):
+        """Initialize tracking for a new analysis run."""
+        self.tracker.reset(ticker)
+        self.console.print()
+        self.console.print(f"[bold cyan]▶ Starting Analysis for [white]{ticker}[/white][/bold cyan]")
+        self.console.print()
+        
+    def show_progress(self):
+        """Display the current progress table."""
+        self.console.print(self.tracker.build_progress_table())
+        
+    @contextmanager
+    def phase(self, phase_name: str):
+        """Context manager for tracking a phase with spinner."""
+        self.tracker.start_phase(phase_name)
+        try:
+            with self.console.status(
+                f"[bold blue]{phase_name}...[/bold blue]",
+                spinner="dots"
+            ) as status:
+                self._status = status
+                yield status
+        finally:
+            self._status = None
+            self.tracker.complete_phase(phase_name)
+            
+    def update_status(self, message: str):
+        """Update the current spinner status message."""
+        if self._status:
+            self._status.update(f"[bold blue]{message}[/bold blue]")
+            
+    def phase_detail(self, phase: str, detail: str):
+        """Add a detail to a phase (shown in progress table)."""
+        self.tracker.add_detail(phase, detail)
+
+    # === Legacy methods for backward compatibility ===
+    
     def start_section(self, title: str, style: str = "bold cyan"):
         """Start a new major section (like a phase of analysis)."""
         self.console.print()
         self.console.print(f"[{style}]>> {title}[/{style}]")
-        self.current_tree = None # Reset tree for new section
 
     def log_step(self, message: str, emoji: str = "🔹"):
         """Log a generic step."""
-        self.console.print(f" {emoji} {message}")
+        if self.verbose:
+            self.console.print(f" {emoji} {message}")
+        # Update spinner if active
+        if self._status:
+            self._status.update(f"[bold blue]{message}[/bold blue]")
 
     def log_success(self, message: str):
         """Log a success message."""
@@ -71,11 +212,14 @@ class IntrepidQLogger:
 
     def start_task(self, task_name: str):
         """Start a specific task visualization."""
-        self.console.print(f"[bold blue] ▶ Task:[/bold blue] {task_name}")
-        # We can implement a visual indicator here
+        if self.verbose:
+            self.console.print(f"[bold blue] ▶ Task:[/bold blue] {task_name}")
         
     def log_tool_used(self, tool_name: str, args: Any = None, result: Any = None):
         """Log that a tool was used."""
+        if not self.verbose:
+            return  # Hide tool details in clean mode
+            
         tool_msg = f"[bold magenta]⚡ {tool_name}[/bold magenta]"
         if args:
             args_str = str(args)
@@ -94,6 +238,22 @@ class IntrepidQLogger:
     def print_panel(self, content: str, title: str, style: str = "cyan"):
         """Print detailed content in a panel."""
         self.console.print(Panel(content, title=title, border_style=style))
+        
+    def print_summary(self):
+        """Print the final progress summary table."""
+        self.console.print()
+        self.console.print(self.tracker.build_progress_table())
+        self.console.print()
+        
+        # Calculate total time
+        total_time = 0
+        for phase in PHASES:
+            p = self.tracker.phases.get(phase, {})
+            if p.get("start_time") and p.get("end_time"):
+                total_time += p["end_time"] - p["start_time"]
+        
+        self.console.print(f"[bold green]✓ Analysis complete in {total_time:.1f}s[/bold green]")
+        self.console.print()
 
 # Global instance
-logger = IntrepidQLogger()
+logger = IntrepidQLogger(verbose=False)

@@ -154,6 +154,7 @@ def _extract_response_content(content: str | list) -> str:
 async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: bool = True):
     """
     Async implementation of the analysis workflow using LangGraph.
+    Features clean CLI logging with spinners and progress tracking.
     """
     from utils.cli_logger import logger
     
@@ -164,9 +165,10 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
     ticker = resolve_ticker(ticker)
     
     if ticker != original_input.upper():
-        logger.log_step(f"Resolved '{original_input}' to ticker: {ticker}", emoji="🔍")
+        logger.log_success(f"Resolved '{original_input}' to ticker: {ticker}")
 
-    logger.start_section(f"Multi-Agent System: Analyzing {ticker}...", style="bold blue")
+    # Initialize analysis tracking
+    logger.start_analysis(ticker)
 
     session_id = f"analysis_{ticker}_{uuid.uuid4().hex[:6]}"
 
@@ -181,21 +183,17 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
         
         initial_state = {"ticker": ticker}
         
-        logger.log_step("Starting Workflow...", emoji="🔄")
-        
         # Run the graph until the first interruption or completion
         current_state = None
         
-        # Initial run
+        # Initial run with phase tracking
         async for event in app.astream(initial_state, graph_config, stream_mode="values"):
-            # Simple progress logging based on state keys
             if "data_result" in event and "validation_result" not in event:
-                logger.log_success("Data Collection Complete")
+                logger.tracker.complete_phase("Data Collection")
             elif "validation_result" in event and "analysis_result" not in event:
-                    logger.log_success("Validation Complete")
-                    # Check for conflicts in the event (snapshot)
-                    if event.get("conflicts"):
-                         logger.log_warning(f"{len(event['conflicts'])} Data Conflicts Detected!")
+                logger.tracker.complete_phase("Validation")
+                if event.get("conflicts"):
+                    logger.log_warning(f"{len(event['conflicts'])} Data Conflicts Detected!")
 
         # Check if we are interrupted
         snapshot = app.get_state(graph_config)
@@ -225,40 +223,44 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
                     choice = typer.prompt("Select source to use (1/2)", type=int)
                     
                     if choice == 2:
-                        logger.log_step(f"Updating {metric} to {val_ref}")
+                        logger.log_success(f"Updated {metric} to {val_ref}")
                         financial_data[metric] = val_ref
                     else:
                         logger.console.print(f"[dim]Keeping Yahoo Finance value: {val_primary}[/dim]")
                 
-                logger.log_step("Resuming Workflow...", emoji="🔄")
-                
                 # Update state and resume
                 data_result['financial_data'] = financial_data
-                
                 app.update_state(graph_config, {"data_result": data_result, "conflicts": []})
                 
                 # Continue execution
                 async for event in app.astream(None, graph_config, stream_mode="values"):
-                        if "analysis_result" in event and "final_report" not in event:
-                            logger.log_success("Analysis Complete")
-                        elif "final_report" in event:
-                            logger.log_success("Synthesis Complete")
-                            current_state = event
+                    if "analysis_result" in event and "final_report" not in event:
+                        logger.tracker.complete_phase("Analysis")
+                    elif "final_report" in event:
+                        logger.tracker.complete_phase("Synthesis")
+                        current_state = event
 
         else:
             current_state = snapshot.values
+            # Mark remaining phases as complete if they were in state
+            if current_state.get("analysis_result"):
+                logger.tracker.complete_phase("Analysis")
+            if current_state.get("final_report"):
+                logger.tracker.complete_phase("Synthesis")
 
         # Final Output
         if current_state and "final_report" in current_state:
             final_report = current_state["final_report"]
             final_text = _format_report(final_report, ticker)
 
+            # Show progress summary
+            logger.print_summary()
+
             logger.print_panel(
                 Markdown(final_text),
                 title=f"📊 {ticker} Analysis Report", 
                 style="cyan"
             )
-            logger.log_success("Multi-Agent Analysis Complete!")
 
             # Save to database
             await memory.save_analysis_to_memory(
@@ -271,7 +273,7 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
             # Save to file if requested
             if save_file:
                 filepath = _save_report_to_file(final_text, ticker, session_id)
-                logger.log_step(f"Report saved to: {filepath}", emoji="💾")
+                logger.log_success(f"Report saved to: {filepath}")
 
     except Exception as e:
         logger.log_error(f"ERROR: {e}")

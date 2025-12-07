@@ -21,3 +21,5 @@ equity_ai.db
 *.txt
 docs/
 debug_validation.py
+test_tools.py
+test_validation.py

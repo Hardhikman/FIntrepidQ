@@ -39,6 +39,12 @@ The system uses a **4-agent pipeline** powered by Google Gemini and LangGraph:
 - **Dated Events**: News and strategic signals with dates
 - **Structured Output**: Markdown format with Executive Summary, Analysis, and Verdict
 
+### CLI Interface
+- **Progress Tracking**: Live progress table showing all 4 workflow phases
+- **Status Spinners**: Animated feedback during long-running operations
+- **Timing Metrics**: Per-phase duration tracking with total analysis time
+- **Clean Output**: Professional interface with minimal clutter (verbose mode available)
+
 ## 📦 Installation
 
 1. **Clone the repository**:
@@ -88,7 +94,7 @@ The report will be:
 # Analyze without saving to file
 python chat.py analyze AAPL --no-save-file
 
-# Analyze with real-time event streaming (default)
+# Analyze with verbose logging (shows tool details)
 python chat.py analyze GOOGL --stream
 
 # Interactive chat mode (supports analysis command)
@@ -107,7 +113,23 @@ The system now includes a **verification step** using Alpha Vantage data.
 
 ## 📊 Output Example
 
-Reports include:
+The analysis displays a live progress table during execution:
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                      IntrepidQ Analysis: MSFT                        │
+├────────────────────┬────────────┬───────────┬────────────────────────┤
+│ Phase              │ Status     │ Time      │ Details                │
+├────────────────────┼────────────┼───────────┼────────────────────────┤
+│ Data Collection    │ ✓          │ 8.2s      │ Collecting data for... │
+│ Validation         │ ✓          │ 3.1s      │ Validating data for... │
+│ Analysis           │ ✓          │ 5.4s      │ Analyzing MSFT         │
+│ Synthesis          │ ✓          │ 4.7s      │ Generating report...   │
+└────────────────────┴────────────┴───────────┴────────────────────────┘
+
+✓ Analysis complete in 21.4s
+```
+
+Final reports include:
 ```markdown
 # MSFT - Equity Analysis Report
 
@@ -146,6 +168,8 @@ Intrepidq_equity/
 │   ├── validation.py         # Data quality checks
 │   └── chat_tools.py         # Chat-specific tools
 ├── db_fileops/                # Database operations
+├── utils/                     # Utilities
+│   └── cli_logger.py         # Rich CLI logging with progress tracking
 ├── chat.py                    # Unified CLI entry point
 ├── config.py                  # Configuration
 └── requirements.txt           # Dependencies

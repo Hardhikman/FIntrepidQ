@@ -57,10 +57,11 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
     
     agent = build_data_agent()
     
-    logger.log_step(f"Initializing Data Agent for {ticker}...")
+    # Start phase tracking with spinner
+    logger.tracker.start_phase("Data Collection")
+    logger.phase_detail("Data Collection", f"Collecting data for {ticker}")
     
     # Extract system message from the prompt template
-    # data_agent_prompt[0] is SystemMessagePromptTemplate
     system_message = data_agent_prompt.messages[0].prompt.template
     
     user_input = f"Collect all available data for {ticker}. Get financials, strategic triggers, and recent news."
@@ -69,8 +70,6 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
         {"role": "system", "content": system_message},
         {"role": "user", "content": user_input}
     ]
-    
-    logger.log_step("Agent is thinking...", emoji="🧠")
         
     result = await agent.ainvoke({"messages": messages})
     

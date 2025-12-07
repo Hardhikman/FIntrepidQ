@@ -32,7 +32,9 @@ async def validation_node(state: AgentState):
     if not ticker:
         raise ValueError("Missing 'ticker' in state for validation_node")
     
-    logger.start_section(f"Validation: {ticker}", style="bold yellow")
+    # Phase tracking with spinner
+    logger.tracker.start_phase("Validation")
+    logger.phase_detail("Validation", f"Validating data for {ticker}")
     
     result = await run_validation(ticker, data_result)
     
@@ -53,12 +55,13 @@ async def analysis_node(state: AgentState):
     data_result = state["data_result"]
     validation_result = state.get("validation_result", {})
     
-    logger.start_section(f"Analysis: {ticker}", style="bold magenta")
+    # Phase tracking with spinner
+    logger.tracker.start_phase("Analysis")
+    logger.phase_detail("Analysis", f"Analyzing {ticker}")
     
     # Use enriched data if available (data filled from Alpha Vantage)
     enriched_data = validation_result.get("enriched_data")
     if enriched_data:
-        # Replace the financial_data in data_result with enriched data
         data_result = {**data_result, "financial_data": enriched_data}
     
     result = await run_analysis(ticker, data_result)
@@ -72,7 +75,9 @@ async def synthesis_node(state: AgentState):
     validation_result = state["validation_result"]
     data_result = state["data_result"]
     
-    logger.start_section(f"Synthesis: {ticker}", style="bold blue")
+    # Phase tracking with spinner
+    logger.tracker.start_phase("Synthesis")
+    logger.phase_detail("Synthesis", f"Generating report for {ticker}")
     
     report = await run_synthesis(ticker, analysis_result, validation_result, data_result)
     
