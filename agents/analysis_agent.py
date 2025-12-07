@@ -21,12 +21,27 @@ async def run_analysis(ticker: str, collected_data: Dict[str, Any]) -> Dict[str,
     """
     Run the analysis process.
     """
+    from utils.cli_logger import logger
+    
     agent = build_analysis_agent()
     
-    print(f"--- Starting Analysis for {ticker} ---")
+    logger.log_step(f"Analyzing collected data for {ticker}...", emoji="🤔")
     
     # Convert collected data to string if it's a dict/object
-    data_str = str(collected_data.get("raw_output", collected_data))
+    # FIX: Explicitly include financial_data so the model sees the numbers, not just the "I found it" message.
+    raw_output = collected_data.get("raw_output", "")
+    financials = collected_data.get("financial_data", {})
+    
+    if financials:
+        import json
+        try:
+            financials_str = json.dumps(financials, indent=2)
+            data_str = f"FINANCIAL DATA:\n{financials_str}\n\nOTHER CONTEXT:\n{raw_output}"
+        except (TypeError, ValueError) as e:
+            # Handle non-serializable objects
+            data_str = str(collected_data)
+    else:
+        data_str = str(collected_data.get("raw_output", collected_data))
     
     # Extract system message
     system_message = analysis_agent_prompt.messages[0].prompt.template

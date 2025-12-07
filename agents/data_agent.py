@@ -53,9 +53,11 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
     """
     Run the data collection process for a ticker.
     """
+    from utils.cli_logger import logger
+    
     agent = build_data_agent()
     
-    print(f"--- Starting Data Collection for {ticker} ---")
+    logger.log_step(f"Initializing Data Agent for {ticker}...")
     
     # Extract system message from the prompt template
     # data_agent_prompt[0] is SystemMessagePromptTemplate
@@ -68,6 +70,8 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
         {"role": "user", "content": user_input}
     ]
     
+    logger.log_step("Agent is thinking...", emoji="🧠")
+        
     result = await agent.ainvoke({"messages": messages})
     
     # Result from LangGraph agent is usually a dict with 'messages'
@@ -75,19 +79,15 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
     last_message = result["messages"][-1]
     output_content = last_message.content
     
-    # Extract financial data from tool messages in history
+    # Extract financial data from tool messages in history AND log tool usage
     financial_data = {}
+    from langchain_core.messages import ToolMessage, AIMessage
+
+    # Log tool usage from history
     for msg in result["messages"]:
-        if hasattr(msg, "tool_calls") and len(msg.tool_calls) > 0:
-            pass # This is the AI calling the tool
-        if hasattr(msg, "name") and msg.name == "get_deep_financials":
-             # This is a ToolMessage, but LangGraph might structure it differently depending on version.
-             # Usually ToolMessage has 'content' which is the tool output string/json.
-             pass
-             
-    # Better approach for extracting tool outputs in LangGraph:
-    # Iterate through messages, find ToolMessage corresponding to get_deep_financials
-    from langchain_core.messages import ToolMessage
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+             for tool_call in msg.tool_calls:
+                 logger.log_tool_used(tool_call['name'], tool_call['args'])
     
     for msg in result["messages"]:
         if isinstance(msg, ToolMessage) and msg.name == "get_deep_financials":
@@ -99,64 +99,49 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
             import ast
             import re
             
-            # Debug: print content to see what we are dealing with
-            # print(f"DEBUG: Tool output for {msg.name}")
-            # print(f"DEBUG: Content type: {type(msg.content)}")
-            # print(f"DEBUG: Content preview: {str(msg.content)[:200]}...")
-            
             data = None
             try:
                 if isinstance(msg.content, dict):
                     # Already a dict
                     data = msg.content
-                    # print(f"DEBUG: Content is already a dict")
                 elif isinstance(msg.content, str):
                     # String - try parsing
-                    # print(f"DEBUG: Content is a string, attempting to parse...")
                     content_str = msg.content
                     
                     # Try JSON first
                     try:
                         data = json.loads(content_str)
-                        # print(f"DEBUG: JSON parsing succeeded")
-                    except json.JSONDecodeError as e_json:
-                        # print(f"DEBUG: JSON parsing failed: {e_json}")
+                    except json.JSONDecodeError:
                         
-                        # Try to fix common issues for ast.literal_eval
-                        # Replace numpy references with None
+                        # Sanitize string for ast.literal_eval
+                        # Replace numpy/Python float references with None or string equivalents
                         fixed_str = re.sub(r'\bnp\.nan\b', 'None', content_str)
                         fixed_str = re.sub(r'\bnp\.inf\b', 'None', fixed_str)
-                        fixed_str = re.sub(r'\binf\b', 'None', fixed_str)
-                        fixed_str = re.sub(r'\bnan\b', 'None', fixed_str)
+                        fixed_str = re.sub(r'\bfloat\([\'"]inf[\'"]\)', 'None', fixed_str)
+                        fixed_str = re.sub(r'\bfloat\([\'"]nan[\'"]\)', 'None', fixed_str)
+                        fixed_str = re.sub(r'(?<![a-zA-Z_])\binf\b(?![a-zA-Z_])', 'None', fixed_str)
+                        fixed_str = re.sub(r'(?<![a-zA-Z_])\bnan\b(?![a-zA-Z_])', 'None', fixed_str)
+                        fixed_str = re.sub(r'(?<![a-zA-Z_])\bNaN\b(?![a-zA-Z_])', 'None', fixed_str)
+                        fixed_str = re.sub(r'(?<![a-zA-Z_])\bInfinity\b(?![a-zA-Z_])', 'None', fixed_str)
+                        fixed_str = re.sub(r'(?<![a-zA-Z_])\b-Infinity\b(?![a-zA-Z_])', 'None', fixed_str)
                         
                         try:
                             data = ast.literal_eval(fixed_str)
-                            # print(f"DEBUG: ast.literal_eval succeeded (after fixing)")
-                        except Exception as e_ast:
-                            # print(f"DEBUG: ast.literal_eval failed: {e_ast}")
-                            # Last resort: try eval with numpy context
-                            try:
-                                # Only use eval if the string looks safe (starts with {)
-                                if content_str.strip().startswith('{'):
-                                    # Import numpy for eval context
-                                    import numpy as np
-                                    # Provide safe eval context with numpy
-                                    eval_context = {'np': np, 'nan': float('nan'), 'inf': float('inf')}
-                                    data = eval(content_str, {"__builtins__": {}}, eval_context)
-                                    # print(f"DEBUG: eval succeeded with numpy context")
-                            except Exception as e_eval:
-                                print(f"Warning: Failed to parse tool output: {e_eval}")
+                        except (ValueError, SyntaxError) as e_ast:
+                            logger.log_warning(f"Failed to parse tool output with ast.literal_eval: {e_ast}")
                 
                 if data and isinstance(data, dict) and data.get("status") == "success":
                     financial_data = data.get("data", {})
-                    # print(f"DEBUG: Successfully extracted financial data for {ticker}")
-                    # print(f"DEBUG: Financial data keys: {list(financial_data.keys())[:10]}")
+                    logger.log_success(f"Successfully extracted financial data for {ticker}")
                     break
-            except Exception as e:
-                print(f"Error parsing financial data: {e}")
+            except (json.JSONDecodeError, ValueError, SyntaxError, TypeError, KeyError) as e:
+                logger.log_error(f"Error parsing financial data: {e}")
 
     # Convert numpy types to native Python types for LangGraph serialization
     financial_data = _convert_numpy_types(financial_data)
+    
+    if not financial_data:
+        logger.log_warning("No financial_data extracted from tool outputs!")
     
     return {
         "ticker": ticker,
