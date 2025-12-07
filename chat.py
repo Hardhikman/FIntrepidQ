@@ -23,7 +23,8 @@ console = Console(width=100)
 @app.callback()
 def callback() -> None:
     """Intrepidq Equity Chat CLI"""
-    pass
+    from utils.cli_logger import logger
+    logger.print_header()
 
 #HELPER FUNCTIONS (Migrated from main.py)
 
@@ -154,6 +155,8 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
     """
     Async implementation of the analysis workflow using LangGraph.
     """
+    from utils.cli_logger import logger
+    
     user_id = user_id or config.DEFAULT_USER_ID
     
     # Resolve ticker if it's a company name
@@ -161,9 +164,9 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
     ticker = resolve_ticker(ticker)
     
     if ticker != original_input.upper():
-        console.print(f"[bold yellow]🔍 Resolved '{original_input}' to ticker: {ticker}[/bold yellow]")
+        logger.log_step(f"Resolved '{original_input}' to ticker: {ticker}", emoji="🔍")
 
-    console.print(f"\n[bold blue]🚀 Multi-Agent System: Analyzing {ticker}...[/bold blue]\n")
+    logger.start_section(f"Multi-Agent System: Analyzing {ticker}...", style="bold blue")
 
     session_id = f"analysis_{ticker}_{uuid.uuid4().hex[:6]}"
 
@@ -178,7 +181,7 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
         
         initial_state = {"ticker": ticker}
         
-        console.print("[bold cyan]🔄 Starting Workflow...[/bold cyan]")
+        logger.log_step("Starting Workflow...", emoji="🔄")
         
         # Run the graph until the first interruption or completion
         current_state = None
@@ -187,19 +190,19 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
         async for event in app.astream(initial_state, graph_config, stream_mode="values"):
             # Simple progress logging based on state keys
             if "data_result" in event and "validation_result" not in event:
-                console.print("[green]✓ Data Collection Complete[/green]")
+                logger.log_success("Data Collection Complete")
             elif "validation_result" in event and "analysis_result" not in event:
-                    console.print("[green]✓ Validation Complete[/green]")
+                    logger.log_success("Validation Complete")
                     # Check for conflicts in the event (snapshot)
                     if event.get("conflicts"):
-                        console.print(f"[yellow]⚠️  {len(event['conflicts'])} Data Conflicts Detected![/yellow]")
+                         logger.log_warning(f"{len(event['conflicts'])} Data Conflicts Detected!")
 
         # Check if we are interrupted
         snapshot = app.get_state(graph_config)
         
         if snapshot.next:
             # We are interrupted!
-            console.print("\n[bold red]🛑 Workflow Paused: Human Review Required[/bold red]")
+            logger.console.print("\n[bold red]🛑 Workflow Paused: Human Review Required[/bold red]")
             
             state_values = snapshot.values
             conflicts = state_values.get("conflicts", [])
@@ -207,7 +210,7 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
             financial_data = data_result.get("financial_data", {})
             
             if conflicts:
-                console.print(Panel(f"Found {len(conflicts)} discrepancies between Yahoo Finance and Alpha Vantage.", title="Conflict Resolution", border_style="red"))
+                logger.print_panel(f"Found {len(conflicts)} discrepancies between Yahoo Finance and Alpha Vantage.", title="Conflict Resolution", style="red")
                 
                 for conflict in conflicts:
                     metric = conflict['metric']
@@ -215,19 +218,19 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
                     val_ref = conflict['reference_value']
                     diff = conflict['diff_percent']
                     
-                    console.print(f"\n[bold]Conflict for '{metric}' (Diff: {diff:.2f}%):[/bold]")
-                    console.print(f"1. Yahoo Finance: [cyan]{val_primary}[/cyan]")
-                    console.print(f"2. Alpha Vantage: [magenta]{val_ref}[/magenta]")
+                    logger.console.print(f"\n[bold]Conflict for '{metric}' (Diff: {diff:.2f}%):[/bold]")
+                    logger.console.print(f"1. Yahoo Finance: [cyan]{val_primary}[/cyan]")
+                    logger.console.print(f"2. Alpha Vantage: [magenta]{val_ref}[/magenta]")
                     
                     choice = typer.prompt("Select source to use (1/2)", type=int)
                     
                     if choice == 2:
-                        console.print(f"[green]Updating {metric} to {val_ref}[/green]")
+                        logger.log_step(f"Updating {metric} to {val_ref}")
                         financial_data[metric] = val_ref
                     else:
-                        console.print(f"[dim]Keeping Yahoo Finance value: {val_primary}[/dim]")
+                        logger.console.print(f"[dim]Keeping Yahoo Finance value: {val_primary}[/dim]")
                 
-                console.print("\n[bold cyan]🔄 Resuming Workflow...[/bold cyan]")
+                logger.log_step("Resuming Workflow...", emoji="🔄")
                 
                 # Update state and resume
                 data_result['financial_data'] = financial_data
@@ -237,9 +240,9 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
                 # Continue execution
                 async for event in app.astream(None, graph_config, stream_mode="values"):
                         if "analysis_result" in event and "final_report" not in event:
-                            console.print("[green]✓ Analysis Complete[/green]")
+                            logger.log_success("Analysis Complete")
                         elif "final_report" in event:
-                            console.print("[green]✓ Synthesis Complete[/green]")
+                            logger.log_success("Synthesis Complete")
                             current_state = event
 
         else:
@@ -250,14 +253,12 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
             final_report = current_state["final_report"]
             final_text = _format_report(final_report, ticker)
 
-            console.print("\n")
-            console.print(Panel(
+            logger.print_panel(
                 Markdown(final_text),
-                title=f"[bold cyan]📊 {ticker} Analysis Report[/bold cyan]",
-                border_style="cyan",
-                padding=(1, 2)
-            ))
-            console.print("\n[bold green]✅ Multi-Agent Analysis Complete![/bold green]\n")
+                title=f"📊 {ticker} Analysis Report", 
+                style="cyan"
+            )
+            logger.log_success("Multi-Agent Analysis Complete!")
 
             # Save to database
             await memory.save_analysis_to_memory(
@@ -270,10 +271,10 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
             # Save to file if requested
             if save_file:
                 filepath = _save_report_to_file(final_text, ticker, session_id)
-                console.print(f"[dim]💾 Report saved to: {filepath}[/dim]\n")
+                logger.log_step(f"Report saved to: {filepath}", emoji="💾")
 
     except Exception as e:
-        console.print(f"\n[bold red]❌ ERROR:[/bold red] {e}\n")
+        logger.log_error(f"ERROR: {e}")
         import traceback
         traceback.print_exc()
 

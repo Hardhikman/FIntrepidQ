@@ -3,6 +3,8 @@ SQLite-based memory for saving deep equity analysis reports and (optionally) cha
 """
 
 import sqlite3
+import time
+from contextlib import contextmanager
 from typing import List, Optional, Dict, Any
 
 
@@ -10,6 +12,35 @@ DB_PATH = "equity_ai.db"
 
 # Configuration
 REPORTS_TO_KEEP = 3  # Keep latest 3 reports per ticker
+DB_RETRY_ATTEMPTS = 3
+DB_RETRY_DELAY = 0.5  # seconds
+
+
+@contextmanager
+def _db_connect(db_path: str = DB_PATH, max_retries: int = DB_RETRY_ATTEMPTS):
+    """
+    Context manager for SQLite connections with retry logic for threading issues.
+    Handles 'database is locked' errors with exponential backoff.
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            conn = sqlite3.connect(db_path, timeout=10)
+            try:
+                yield conn
+                conn.commit()
+                return
+            finally:
+                conn.close()
+        except sqlite3.OperationalError as e:
+            last_error = e
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                wait_time = DB_RETRY_DELAY * (2 ** attempt)
+                print(f"Database locked, retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+            else:
+                raise
+    raise last_error
 
 
 def init_db() -> None:
