@@ -207,7 +207,7 @@ def verify_data_accuracy(primary_data: Dict[str, Any], reference_data: Dict[str,
         if val is None: return None
         try:
             return float(val)
-        except:
+        except (ValueError, TypeError):
             return None
 
     # 1. Compare Current Price

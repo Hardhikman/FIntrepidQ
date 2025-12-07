@@ -4,16 +4,25 @@ from typing import Dict, Any, Optional
 from langchain_core.tools import StructuredTool
 import config
 
+
+class AlphaVantageAPIKeyError(Exception):
+    """Raised when Alpha Vantage API key is missing."""
+    pass
+
+
 class AlphaVantageClient:
     """
     Client for interacting with the Alpha Vantage API.
     """
     BASE_URL = "https://www.alphavantage.co/query"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, raise_on_missing_key: bool = False):
         self.api_key = api_key or config.ALPHA_VANTAGE_API_KEY
+        self.raise_on_missing_key = raise_on_missing_key
         if not self.api_key:
-            print("Warning: ALPHA_VANTAGE_API_KEY not found in environment.")
+            if raise_on_missing_key:
+                raise AlphaVantageAPIKeyError("ALPHA_VANTAGE_API_KEY not found. Set it in .env file.")
+            print("Warning: ALPHA_VANTAGE_API_KEY not found. Alpha Vantage features will be disabled.")
 
     def _make_request(self, function: str, symbol: str, **kwargs) -> Dict[str, Any]:
         """
@@ -42,8 +51,10 @@ class AlphaVantageClient:
                 print(f"Alpha Vantage Note: {data['Note']}")
                 
             return data
-        except Exception as e:
-            return {"error": str(e)}
+        except requests.RequestException as e:
+            return {"error": f"Network error: {str(e)}"}
+        except (ValueError, KeyError) as e:
+            return {"error": f"Data parsing error: {str(e)}"}
 
     def get_company_overview(self, symbol: str) -> Dict[str, Any]:
         return self._make_request("OVERVIEW", symbol)
@@ -89,8 +100,23 @@ def _get_alpha_vantage_data(ticker: str) -> Dict[str, Any]:
         "cash_flow": cash_flow
     }
     
+    # Check all responses for errors (not just overview)
+    errors = []
+    for name, response in [("overview", overview), ("quote", quote), 
+                           ("income", income), ("balance", balance), 
+                           ("cash_flow", cash_flow)]:
+        if isinstance(response, dict) and "error" in response:
+            errors.append(f"{name}: {response['error']}")
+    
+    if errors:
+        return {
+            "status": "error",
+            "errors": errors,
+            "data": data  # Still return partial data that may be usable
+        }
+    
     return {
-        "status": "success" if "error" not in overview else "error",
+        "status": "success",
         "data": data
     }
 

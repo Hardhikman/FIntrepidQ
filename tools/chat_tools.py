@@ -127,7 +127,7 @@ def _search_reports_by_keyword(keyword: str) -> str:
             end = min(len(report), idx + 100)
             snippet = report[start:end].replace("\n", " ")
             results.append(f"- {ticker} ({date}): ...{snippet}...")
-        except:
+        except (AttributeError, ValueError):
             results.append(f"- {ticker} ({date}): (Match found)")
             
     return "\n".join(results)

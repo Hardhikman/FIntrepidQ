@@ -23,6 +23,45 @@ cache = TTLCache(maxsize=100, ttl=3600)
 SKILLS_DIR = Path(__file__).parent.parent / "context_engineering" / "skills"
 
 
+def _safe_trend(values: list, increasing: bool = True, use_abs: bool = False) -> str:
+    """
+    Safely compare trend values, handling None/NaN/empty lists.
+    
+    Args:
+        values: List of numeric values (most recent first)
+        increasing: If True, check for increasing trend; if False, check for decreasing
+        use_abs: If True, use absolute values for comparison (e.g., for CapEx)
+    
+    Returns:
+        'increasing', 'decreasing', or 'unknown' if comparison cannot be made
+    """
+    if not values or len(values) < 2:
+        return "unknown"
+    
+    try:
+        val0, val1 = values[0], values[1]
+        
+        # Check for None or NaN
+        if val0 is None or val1 is None:
+            return "unknown"
+        if isinstance(val0, float) and (np.isnan(val0) or np.isinf(val0)):
+            return "unknown"
+        if isinstance(val1, float) and (np.isnan(val1) or np.isinf(val1)):
+            return "unknown"
+        
+        # Use absolute values if specified
+        if use_abs:
+            val0, val1 = abs(val0), abs(val1)
+        
+        # Determine trend
+        if increasing:
+            return "increasing" if val0 > val1 else "decreasing"
+        else:
+            return "decreasing" if val0 < val1 else "increasing"
+    except (TypeError, ValueError):
+        return "unknown"
+
+
 
 # PLANNING TOOL (no-op TODO list)
 
@@ -130,7 +169,8 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             delta = hist['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            rs = gain / loss
+            # Avoid division by zero: if loss is 0, RS is infinite (RSI = 100)
+            rs = gain / loss.replace(0, float('nan'))
             hist['RSI'] = 100 - (100 / (1 + rs))
             
             # MACD
@@ -139,15 +179,26 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             macd = exp1 - exp2
             signal = macd.ewm(span=9, adjust=False).mean()
             
-            # Get latest values
+            # Helper to safely extract values (handles NaN/None)
+            def _safe_value(val):
+                if val is None:
+                    return None
+                try:
+                    if np.isnan(val) or np.isinf(val):
+                        return None
+                    return float(val)
+                except (TypeError, ValueError):
+                    return val
+            
+            # Get latest values with consistent NaN handling
             latest = hist.iloc[-1]
             technicals = {
-                "current_price": latest['Close'],
-                "sma_50": latest['SMA_50'] if not np.isnan(latest['SMA_50']) else None,
-                "sma_200": latest['SMA_200'] if not np.isnan(latest['SMA_200']) else None,
-                "rsi": latest['RSI'] if not np.isnan(latest['RSI']) else None,
-                "macd": macd.iloc[-1] if not np.isnan(macd.iloc[-1]) else None,
-                "macd_signal": signal.iloc[-1] if not np.isnan(signal.iloc[-1]) else None,
+                "current_price": _safe_value(latest['Close']),
+                "sma_50": _safe_value(latest['SMA_50']),
+                "sma_200": _safe_value(latest['SMA_200']),
+                "rsi": _safe_value(latest['RSI']),
+                "macd": _safe_value(macd.iloc[-1]),
+                "macd_signal": _safe_value(signal.iloc[-1]),
             }
             
             #2. Risk Metrics 
@@ -215,12 +266,12 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     "capex_quarters": recent_capex,
                     "retained_earnings_quarters": recent_retained_earnings,
                     "net_income_quarters": recent_net_income,
-                    # Quarterly trends (Q-o-Q)
-                    "revenue_trend_qoq": "increasing" if len(recent_rev) > 1 and recent_rev[0] > recent_rev[1] else "decreasing",
-                    "debt_trend_qoq": "decreasing" if len(recent_debt) > 1 and recent_debt[0] < recent_debt[1] else "increasing",
-                    "capex_trend_qoq": "increasing" if len(recent_capex) > 1 and abs(recent_capex[0]) > abs(recent_capex[1]) else "decreasing",
-                    "retained_earnings_trend_qoq": "increasing" if len(recent_retained_earnings) > 1 and recent_retained_earnings[0] > recent_retained_earnings[1] else "decreasing",
-                    "net_income_trend_qoq": "increasing" if len(recent_net_income) > 1 and recent_net_income[0] > recent_net_income[1] else "decreasing",
+                    # Quarterly trends (Q-o-Q) with safe comparison
+                    "revenue_trend_qoq": _safe_trend(recent_rev, increasing=True),
+                    "debt_trend_qoq": _safe_trend(recent_debt, increasing=False),
+                    "capex_trend_qoq": _safe_trend(recent_capex, increasing=True, use_abs=True),
+                    "retained_earnings_trend_qoq": _safe_trend(recent_retained_earnings, increasing=True),
+                    "net_income_trend_qoq": _safe_trend(recent_net_income, increasing=True),
                 }
             
             #ANNUAL TRENDS 
@@ -269,13 +320,13 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     "retained_earnings_annual": annual_retained_earnings,
                     "net_income_annual": annual_net_income,
                     "total_assets_annual": annual_assets,
-                    # Annual trends (Y-o-Y)
-                    "revenue_trend_yoy": "increasing" if len(annual_rev) > 1 and annual_rev[0] > annual_rev[1] else "decreasing",
-                    "debt_trend_yoy": "decreasing" if len(annual_debt) > 1 and annual_debt[0] < annual_debt[1] else "increasing",
-                    "capex_trend_yoy": "increasing" if len(annual_capex) > 1 and abs(annual_capex[0]) > abs(annual_capex[1]) else "decreasing",
-                    "retained_earnings_trend_yoy": "increasing" if len(annual_retained_earnings) > 1 and annual_retained_earnings[0] > annual_retained_earnings[1] else "decreasing",
-                    "net_income_trend_yoy": "increasing" if len(annual_net_income) > 1 and annual_net_income[0] > annual_net_income[1] else "decreasing",
-                    "assets_trend_yoy": "increasing" if len(annual_assets) > 1 and annual_assets[0] > annual_assets[1] else "decreasing",
+                    # Annual trends (Y-o-Y) with safe comparison
+                    "revenue_trend_yoy": _safe_trend(annual_rev, increasing=True),
+                    "debt_trend_yoy": _safe_trend(annual_debt, increasing=False),
+                    "capex_trend_yoy": _safe_trend(annual_capex, increasing=True, use_abs=True),
+                    "retained_earnings_trend_yoy": _safe_trend(annual_retained_earnings, increasing=True),
+                    "net_income_trend_yoy": _safe_trend(annual_net_income, increasing=True),
+                    "assets_trend_yoy": _safe_trend(annual_assets, increasing=True),
                 }
             
             # Combine both quarterly and annual trends
