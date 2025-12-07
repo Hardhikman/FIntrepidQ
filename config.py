@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Gemini model name: adjust if needed
-MODEL_NAME = "gemini-2.5-flash"
-# Alternatives: "gemini-1.5-pro"
+# Gemini model name: can be set via MODEL_NAME env var
+MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.5-flash-preview-05-20")
+# Alternatives: "gemini-2.5-flash-lite", "gemini-2.0-flash"
 
 # Temperature (0 = deterministic, higher = more creative)
 TEMPERATURE = 0.0
