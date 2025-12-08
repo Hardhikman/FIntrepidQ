@@ -20,6 +20,9 @@ equity_ai.db
 *.log
 *.txt
 docs/
+
+# Debug and testing
 debug_validation.py
 test_tools.py
 test_validation.py
+verify_data.py

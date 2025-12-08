@@ -10,7 +10,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 
-import config
+from utils import config
 from context_engineering import memory
 from tools.definitions import resolve_ticker
 from agents.chat_agent import build_chat_agent
