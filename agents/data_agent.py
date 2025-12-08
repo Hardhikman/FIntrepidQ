@@ -1,6 +1,5 @@
 from typing import Dict, Any, List
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 
 from tools.definitions import (
@@ -10,7 +9,7 @@ from tools.definitions import (
     search_google_news_tool
 )
 from context_engineering.prompts import data_agent_prompt
-import config
+from utils.llm_helper import get_llm_with_fallback
 import numpy as np
 
 def _convert_numpy_types(obj):
@@ -32,11 +31,11 @@ def _convert_numpy_types(obj):
     else:
         return obj
 
-def build_data_agent():
+def build_data_agent(use_fallback: bool = False):
     """
     Builds the Data Collection Agent using LangGraph.
     """
-    llm = ChatGoogleGenerativeAI(model=config.MODEL_NAME, temperature=0)
+    llm = get_llm_with_fallback(temperature=0, use_fallback=use_fallback)
     
     tools = [
         get_deep_financials_tool,

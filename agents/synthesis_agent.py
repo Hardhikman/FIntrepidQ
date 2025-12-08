@@ -1,17 +1,16 @@
 from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from context_engineering.prompts import synthesis_agent_prompt
-import config
+from utils.llm_helper import get_llm_with_fallback
 from datetime import datetime
 
-def build_synthesis_agent():
+def build_synthesis_agent(use_fallback: bool = False):
     """
     Builds the Synthesis Agent.
     This agent compiles the final report.
     """
-    llm = ChatGoogleGenerativeAI(model=config.MODEL_NAME, temperature=0)
+    llm = get_llm_with_fallback(temperature=0, use_fallback=use_fallback)
     
     prompt = synthesis_agent_prompt
     

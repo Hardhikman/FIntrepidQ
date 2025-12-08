@@ -1,15 +1,14 @@
 from typing import Dict, Any
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.prebuilt import create_react_agent
 from tools.definitions import load_skill_tool
 from context_engineering.prompts import analysis_agent_prompt
-import config
+from utils.llm_helper import get_llm_with_fallback
 
-def build_analysis_agent():
+def build_analysis_agent(use_fallback: bool = False):
     """
     Builds the Analysis Agent using LangGraph.
     """
-    llm = ChatGoogleGenerativeAI(model=config.MODEL_NAME, temperature=0.1)
+    llm = get_llm_with_fallback(temperature=0.1, use_fallback=use_fallback)
     
     # The analysis agent might need to load specific skills/frameworks
     tools = [load_skill_tool]
