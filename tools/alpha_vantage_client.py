@@ -1,8 +1,7 @@
-import os
 import requests
-from typing import Dict, Any, Optional
+from typing import Optional, Dict, Any
 from langchain_core.tools import StructuredTool
-import config
+from utils import config
 
 
 class AlphaVantageAPIKeyError(Exception):

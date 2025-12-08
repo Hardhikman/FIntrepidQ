@@ -19,6 +19,50 @@ import numpy as np
 cache = TTLCache(maxsize=100, ttl=3600)
 
 
+def _sanitize_for_json(obj):
+    """
+    Recursively sanitize an object for JSON/literal_eval serialization.
+    Converts numpy types to native Python types and handles NaN/Inf values.
+    """
+    import math
+    
+    if obj is None:
+        return None
+    
+    # Handle numpy types
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    elif isinstance(obj, (np.floating,)):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.ndarray):
+        return _sanitize_for_json(obj.tolist())
+    
+    # Handle standard Python float (could be inf/nan from calculations)
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    
+    # Handle collections recursively
+    elif isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(_sanitize_for_json(item) for item in obj)
+    
+    # Handle pandas Timestamp
+    elif hasattr(obj, 'strftime'):
+        return obj.strftime('%Y-%m-%d')
+    
+    # Return as-is for other types (str, int, bool, etc.)
+    return obj
+
+
 # Base directory for skills
 SKILLS_DIR = Path(__file__).parent.parent / "context_engineering" / "skills"
 
@@ -414,6 +458,11 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             # First try to get from info
             debt_to_equity_calculated = info.get("debtToEquity")
             
+            # yfinance returns D/E as percentage (e.g., 152.41 instead of 1.52)
+            # Normalize to standard ratio format for SKILL.md thresholds (>2.0 = high leverage)
+            if debt_to_equity_calculated is not None:
+                debt_to_equity_calculated = debt_to_equity_calculated / 100
+            
             # If not available, calculate from balance sheet
             if debt_to_equity_calculated is None and not a_bal.empty:
                 total_debt = info.get("totalDebt", 0) or 0
@@ -480,6 +529,9 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             "volume_trends": volume_trends,
             "dividend_trends": dividend_trends
         }
+
+        # Sanitize all values to ensure JSON/literal_eval compatibility
+        financial_data = _sanitize_for_json(financial_data)
 
         return {
             "status": "success",
