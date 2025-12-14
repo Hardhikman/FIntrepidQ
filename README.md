@@ -15,18 +15,20 @@ The system uses a **4-agent pipeline** powered by Google Gemini and LangGraph:
 
 ### Quantitative Analysis
 - **Fundamentals**: Revenue growth, margins, P/E, Debt/Equity, ROE, FCF
-- **Technicals**: RSI, MACD, SMA (50/200), Golden/Death Cross detection
-- **Risk Metrics**: Volatility, Max Drawdown, Sharpe Ratio
-- **Trends**: Quarterly revenue, debt, CapEx, and retained earnings tracking with dates
+- **Technicals**: RSI, MACD, SMA (50/200 days), **SMA 200 weeks** (long-term trend)
+- **Risk Metrics**: Volatility, Max Drawdown, Sharpe Ratio, VaR 95%, Beta
+- **Trends**: Quarterly (4Q) and Annual (3Y) revenue, debt, CapEx, retained earnings with dates
 - **Volume Analysis**: Volume trends, spike detection, and momentum tracking
+- **5-Year Historical Data**: Extended data window for comprehensive analysis
 - **Dividend Tracking**: Yield analysis and payout ratio trends
 
 ### Qualitative Research
-- **News Integration**: Google News search for recent events
-- **Web Search**: DuckDuckGo for strategic signals
+- **News Integration**: Google News search for recent events with **source attribution**
+- **Web Search**: DuckDuckGo for strategic signals (shows source domain)
 - **Management**: CEO track record, vision, ethics
 - **Macro**: Inflation, supply chain, interest rates
 - **ESG**: Environmental, Social, and Governance factors
+- **Global Support**: Works with international tickers (e.g., RELIANCE.NS, BMW.DE, 7203.T)
 
 ### Data Quality
 - **Validation System**: Automatic data completeness checking
@@ -134,17 +136,23 @@ Final reports include:
 # MSFT - Equity Analysis Report
 
 ## Report Metadata
-- **Analysis Date**: 2024-11-30
-- **Data Period**: Q3 2024
-- **Fiscal Quarter**: Q3 2024
+- **Analysis Date**: 2025-12-13
+- **Data Period**: Q3 2025
+- **Fiscal Quarter**: Q3 2025
 
 ## Executive Summary
 - **Verdict**: Buy
-- Revenue growth of 18.4% (Q3 2024)
-- P/E ratio of 35.2 (Nov 2024)
+- Revenue growth of 18.4% (Q3 2025)
+- P/E ratio of 35.2 (Dec 2025)
+
+## 📊 Technical & Risk Profile
+- Trend: Bullish (Price > SMA 200)
+- 200-Week SMA: Buying Opportunity (Price < SMA 200 weeks)
+- RSI Status: Neutral (55.3)
+- Risk Level: Medium
 
 ## Data Quality & Confidence
-- Completeness: 85%
+- Completeness: 89%
 - Confidence: High
 ```
 
@@ -154,24 +162,35 @@ Final reports include:
 ```
 Intrepidq_equity/
 ├── agents/                    # Multi-agent system
+│   ├── __init__.py
 │   ├── data_agent.py         # Data collection
 │   ├── validation_agent.py   # Quality validation
 │   ├── analysis_agent.py     # Investment analysis
 │   ├── synthesis_agent.py    # Report synthesis
-│   └── chat_agent.py         # Chat interface agent
+│   ├── chat_agent.py         # Chat interface agent
+│   └── graph.py              # LangGraph workflow orchestration
 ├── context_engineering/       # Prompts and skills
 │   ├── prompts.py            # Agent prompts
 │   ├── memory.py             # Database interactions
-│   └── skills/               # Analysis frameworks
+│   └── skills/
+│       └── equity_trigger_analysis/
+│           └── SKILL.md      # Analysis rules & interpretation
 ├── tools/                     # Tool definitions
-│   ├── definitions.py        # Financial & news tools
+│   ├── definitions.py        # Financial & news tools (yfinance, DDGS)
 │   ├── validation.py         # Data quality checks
-│   └── chat_tools.py         # Chat-specific tools
+│   ├── chat_tools.py         # Chat-specific tools
+│   └── alpha_vantage_client.py  # Alpha Vantage API client
 ├── db_fileops/                # Database operations
+│   ├── db_maintenance.py     # Cleanup & maintenance scripts
+│   └── view_db.py            # Database viewer utility
 ├── utils/                     # Utilities
-│   └── cli_logger.py         # Rich CLI logging with progress tracking
+│   ├── cli_logger.py         # Rich CLI logging with progress tracking
+│   ├── config.py             # Configuration settings
+│   └── llm_helper.py         # LLM initialization & fallback
+├── docs/                      # Documentation
+│   └── future_prospects.md   # Roadmap & planned features
 ├── chat.py                    # Unified CLI entry point
-├── config.py                  # Configuration
+├── .env.example               # Environment template
 └── requirements.txt           # Dependencies
 ```
 
@@ -240,6 +259,10 @@ Detailed documentation is available in the `docs/` directory, covering:
 - **Google News**: News aggregation
 - **Typer**: CLI framework
 - **Rich**: Terminal formatting
+
+## ⚠️ Disclaimer
+
+This is a **personal finance research tool** for educational purposes only. The analysis and reports generated should **not** be considered investment advice. Always conduct your own research and consult a qualified financial advisor before making investment decisions.
 
 ## 📄 License
 
