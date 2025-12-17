@@ -45,7 +45,13 @@ The system uses a **4-agent pipeline** powered by Google Gemini and LangGraph:
 - **Progress Tracking**: Live progress table showing all 4 workflow phases
 - **Status Spinners**: Animated feedback during long-running operations
 - **Timing Metrics**: Per-phase duration tracking with total analysis time
+- **Real-Time Data Display**: Financial data shown as Rich tables during collection
 - **Clean Output**: Professional interface with minimal clutter (verbose mode available)
+
+### Data Models (Pydantic)
+- **Type-Safe Data**: All financial data validated with Pydantic models
+- **Structured Output**: `FinancialData`, `Technicals`, `RiskMetrics` models
+- **Validation**: Automatic type checking and data validation
 
 ## 📦 Installation
 
@@ -185,6 +191,7 @@ Intrepidq_equity/
 │   └── view_db.py            # Database viewer utility
 ├── utils/                     # Utilities
 │   ├── cli_logger.py         # Rich CLI logging with progress tracking
+│   ├── models.py             # Pydantic data models for financial data
 │   ├── config.py             # Configuration settings
 │   └── llm_helper.py         # LLM initialization & fallback
 ├── docs/                      # Documentation
@@ -254,6 +261,7 @@ Detailed documentation is available in the `docs/` directory, covering:
 - **LangGraph**: Multi-agent orchestration
 - **Google Gemini**: Large language model
 - **LangChain**: Agent framework
+- **Pydantic**: Data validation and models
 - **yfinance**: Financial data
 - **DuckDuckGo**: Web search
 - **Google News**: News aggregation
