@@ -11,11 +11,16 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 from utils import config
+from tools.validation import validate_ticker, ValidationError
+from utils.cli_logger import setup_logging, analysis_logger, error_logger
 from context_engineering import memory
 from tools.definitions import resolve_ticker
 from agents.chat_agent import build_chat_agent
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from context_engineering.prompts import chat_agent_prompt
+
+# Initialize structured logging
+setup_logging(verbose=config.VERBOSE)
 
 app = typer.Typer()
 console = Console(width=100)
@@ -163,15 +168,33 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
         auto_save: If True, skip confirmation prompt and save to both file and database
     """
     from utils.cli_logger import logger
+    import time
     
+    start_time = time.time()
     user_id = user_id or config.DEFAULT_USER_ID
     
-    # Resolve ticker if it's a company name
-    original_input = ticker
-    ticker = resolve_ticker(ticker)
+    # Input validation - validate and sanitize ticker
+    try:
+        original_input = ticker
+        ticker = resolve_ticker(ticker)
     
-    if ticker != original_input.upper():
-        logger.log_success(f"Resolved '{original_input}' to ticker: {ticker}")
+        ticker = validate_ticker(ticker)
+        
+        if ticker != original_input.upper():
+            logger.log_success(f"Resolved '{original_input}' to ticker: {ticker}")
+    except ValidationError as e:
+        error_logger.log_validation_error("ticker", ticker, str(e))
+        logger.log_error(f"Invalid input: {e}")
+        console.print(f"[red]❌ {e}[/red]")
+        return
+
+    # Log analysis start
+    analysis_logger.info(f"Starting analysis for {ticker}", {
+        "event": "analysis_start",
+        "ticker": ticker,
+        "user_id": user_id,
+        "original_input": original_input
+    })
 
     # Initialize analysis tracking
     logger.start_analysis(ticker)
@@ -301,6 +324,14 @@ async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: boo
                 logger.log_success("Report saved to database.")
             else:
                 console.print("[dim]Report saved to file only (not added to database).[/dim]")
+
+        elif current_state and current_state.get("data_result", {}).get("status") == "error":
+            # Workflow aborted due to critical data collection failure
+            error_msg = current_state.get("data_result", {}).get("error", "Unknown error")
+            logger.console.print(f"\n[bold red]❌ Analysis aborted: {error_msg}[/bold red]")
+            logger.console.print("[yellow]💡 Tip: Wait for API quota to reset or check your API key.[/yellow]")
+        else:
+            logger.console.print(f"\n[red]Analysis incomplete - no report generated.[/red]")
 
     except Exception as e:
         logger.log_error(f"ERROR: {e}")

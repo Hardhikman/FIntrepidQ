@@ -133,7 +133,7 @@ The `get_deep_financials` tool provides the following metrics:
 - 🚩 High leverage: `debt_to_equity > 2.0`
 - 🟢 Positive FCF: `free_cash_flow > 0`
 
-### 5. Qualitative & Strategic Signals (Expanded)
+### 7. Qualitative & Strategic Signals (Expanded)
 
 The `check_strategic_triggers` tool now searches for:
 - **Management**: Vision, ethics, track record.
@@ -156,6 +156,15 @@ The `check_strategic_triggers` tool now searches for:
 **Investor Relations & Transparency (NEW)**
 - 🟢 **Green Flag**: Recent (last 3-6 months) "investor presentation", "earnings call transcript", or "annual report" found.
 - 🚩 **Red Flag**: No recent investor documents found, or latest are >1 year old.
+
+**Future Scope from Annual Reports (NEW)**
+- 🟢 **Green Flag**: "Forward outlook guidance" with positive revenue/earnings projections.
+- 🟢 **Green Flag**: Management discussion indicates clear expansion plans, new market entry, or product pipeline.
+- 🟢 **Green Flag**: Investor presentation outlines concrete multi-year strategy with measurable milestones.
+- 🟡 **Neutral**: Conservative or unchanged guidance from prior periods.
+- 🚩 **Red Flag**: Lowered guidance, cautious outlook, or management hedging language ("challenging environment", "uncertainty").
+- 🚩 **Red Flag**: Vague or missing future plans in management discussion section.
+- 🚩 **Red Flag**: Investor presentation lacks strategic clarity or roadmap.
 
 ## Output Format
 

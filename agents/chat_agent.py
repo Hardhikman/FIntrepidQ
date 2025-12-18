@@ -8,7 +8,7 @@ from langgraph.prebuilt import create_react_agent
 from tools.chat_tools import CHAT_TOOLS
 from tools.definitions import search_web_tool, search_google_news_tool
 from context_engineering.prompts import chat_agent_prompt
-from utils.llm_helper import get_llm_with_fallback
+from utils.config import get_llm_with_fallback
 
 def build_chat_agent(use_fallback: bool = False):
     """Builds the Chat Agent using LangGraph."""

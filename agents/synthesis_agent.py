@@ -2,7 +2,7 @@ from typing import Dict, Any
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from context_engineering.prompts import synthesis_agent_prompt
-from utils.llm_helper import get_llm_with_fallback
+from utils.config import get_llm_with_fallback
 from datetime import datetime
 
 def build_synthesis_agent(use_fallback: bool = False):
@@ -35,9 +35,17 @@ async def run_synthesis(ticker: str, analysis_result: Dict[str, Any], validation
     
     # Get current date for the report
     current_date = datetime.now().strftime("%B %d, %Y")
+
+    # Extract company name from financial data, fallback to ticker
+    financial_data = data_result.get("financial_data", {})
+    # Handle case where financial_data might be None
+    if not financial_data:
+        financial_data = {}
+    company_name = financial_data.get("company_name") or ticker
     
     final_report = await chain.ainvoke({
         "ticker": ticker,
+        "company_name": company_name,
         "current_date": current_date,
         "analysis_output": analysis_output,
         "validation_report": validation_report,

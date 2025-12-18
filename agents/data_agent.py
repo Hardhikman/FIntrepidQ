@@ -6,30 +6,11 @@ from tools.definitions import (
     get_deep_financials_tool,
     check_strategic_triggers_tool,
     search_web_tool,
-    search_google_news_tool
+    search_google_news_tool,
+    _sanitize_for_json  # Use centralized sanitization function
 )
 from context_engineering.prompts import data_agent_prompt
-from utils.llm_helper import get_llm_with_fallback
-import numpy as np
-
-def _convert_numpy_types(obj):
-    """Recursively convert numpy types to native Python types for serialization."""
-    if isinstance(obj, dict):
-        return {k: _convert_numpy_types(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [_convert_numpy_types(item) for item in obj]
-    elif isinstance(obj, (np.integer,)):
-        return int(obj)
-    elif isinstance(obj, (np.floating,)):
-        if np.isnan(obj) or np.isinf(obj):
-            return None
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return _convert_numpy_types(obj.tolist())
-    elif isinstance(obj, np.bool_):
-        return bool(obj)
-    else:
-        return obj
+from utils.config import get_llm_with_fallback
 
 def build_data_agent(use_fallback: bool = False):
     """
@@ -135,8 +116,8 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
             except (json.JSONDecodeError, ValueError, SyntaxError, TypeError, KeyError) as e:
                 logger.log_error(f"Error parsing financial data: {e}")
 
-    # Convert numpy types to native Python types for LangGraph serialization
-    financial_data = _convert_numpy_types(financial_data)
+    # Sanitize data for JSON serialization (handles numpy types, NaN, etc.)
+    financial_data = _sanitize_for_json(financial_data)
     
     if not financial_data:
         logger.log_warning("No financial_data extracted from tool outputs!")

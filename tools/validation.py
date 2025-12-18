@@ -3,9 +3,89 @@ Data Validation Tool for Stock Analysis
 
 Validates the completeness and quality of financial data
 to provide confidence scores and flag missing critical metrics.
+Also provides input validation for security and data integrity.
 """
 
+import re
 from typing import Dict, Any, List
+
+# INPUT VALIDATION (Security & Data Integrity)
+
+class ValidationError(Exception):
+    """Raised when input validation fails."""
+    pass
+
+
+def validate_ticker(ticker: str) -> str:
+    """
+    Validate and sanitize a stock ticker symbol.
+    
+    Args:
+        ticker: Raw ticker input from user
+        
+    Returns:
+        Sanitized uppercase ticker
+        
+    Raises:
+        ValidationError: If ticker format is invalid
+    """
+    if not ticker or not isinstance(ticker, str):
+        raise ValidationError("Ticker cannot be empty")
+    
+    # Strip whitespace and convert to uppercase
+    ticker = ticker.strip().upper()
+    
+    # Check length (most tickers are 1-5 chars, but some international can be longer)
+    if len(ticker) < 1 or len(ticker) > 12:
+        raise ValidationError(f"Invalid ticker length: '{ticker}' (must be 1-12 characters)")
+    
+    # Check for valid characters (letters, numbers, dots, hyphens for some exchanges)
+    # Examples: BRK.A, BRK-B, 005930.KS (Samsung on Korean exchange)
+    if not re.match(r'^[A-Z0-9][A-Z0-9.\-]{0,11}$', ticker):
+        raise ValidationError(f"Invalid ticker format: '{ticker}' (only letters, numbers, dots, hyphens allowed)")
+    
+    # Block common SQL injection patterns
+    sql_patterns = [
+        r"('|--|;|/\*|\*/|xp_|sp_|0x)",
+        r"(union|select|insert|update|delete|drop|exec|execute)",
+    ]
+    for pattern in sql_patterns:
+        if re.search(pattern, ticker, re.IGNORECASE):
+            raise ValidationError(f"Invalid characters in ticker: '{ticker}'")
+    
+    return ticker
+
+
+def validate_query(query: str, max_length: int = 500) -> str:
+    """
+    Validate and sanitize a search query.
+    
+    Args:
+        query: Raw query input
+        max_length: Maximum allowed length
+        
+    Returns:
+        Sanitized query string
+        
+    Raises:
+        ValidationError: If query is invalid
+    """
+    if not query or not isinstance(query, str):
+        raise ValidationError("Query cannot be empty")
+    
+    query = query.strip()
+    
+    if len(query) > max_length:
+        raise ValidationError(f"Query too long: {len(query)} chars (max {max_length})")
+    
+    # Remove potentially dangerous characters but allow normal punctuation
+    # Keep: letters, numbers, spaces, common punctuation
+    sanitized = re.sub(r'[<>{}|\[\]\\^`]', '', query)
+    
+    return sanitized
+
+
+# DATA COMPLETENESS VALIDATION
 
 
 # Define critical metrics (required for reliable analysis)

@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 from langchain_core.tools import StructuredTool
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 
 import yfinance as yf
@@ -15,6 +16,8 @@ from ddgs import DDGS
 from cachetools import cached, TTLCache
 import pandas as pd
 import numpy as np
+
+from utils.cli_logger import api_logger, error_logger
 
 
 # Cache for 1 hour (3600 seconds)
@@ -127,44 +130,6 @@ def _safe_trend(values: list, increasing: bool = True, use_abs: bool = False) ->
         return "unknown"
 
 
-
-# PLANNING TOOL (no-op TODO list)
-
-
-def _make_plan(goal: str) -> List[str]:
-    """
-    No-op planning tool: returns a rough todo list for deep equity analysis.
-
-    Args:
-        goal: High-level goal, e.g. 'Deep equity analysis for TSLA'
-
-    This is mainly for 'context engineering' as per deep-agents:
-    it forces the LLM to externalize a plan before calling other tools.
-    """
-    return [
-        f"Goal: {goal}",
-        "1. Call get_deep_financials on the ticker to gather fundamentals.",
-        "2. Call check_strategic_triggers on the ticker to gather news and strategic signals.",
-        "3. Call search_web for targeted research on any anomalies or specific questions.",
-        "4. Load the 'equity_trigger_analysis' skill for domain-specific trigger rules.",
-        "5. Combine fundamentals + news + skill instructions into:",
-        "   - RED FLAGS (risks)",
-        "   - GREEN FLAGS (strengths)",
-        "   - VERDICT (Buy / Sell / Hold) with reasoning."
-    ]
-
-
-make_plan_tool = StructuredTool.from_function(
-    name="make_plan",
-    description=(
-        "Create a todo list for how to perform a deep equity analysis on a stock. "
-        "Use this BEFORE calling other tools so you plan the steps."
-    ),
-    func=_make_plan,
-)
-
-
-
 # SKILL LOADER TOOL
 
 
@@ -202,6 +167,12 @@ load_skill_tool = StructuredTool.from_function(
 # QUANT TOOL: DEEP FINANCIALS (YFINANCE)
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+    reraise=True
+)
 @cached(cache)
 def _get_deep_financials(ticker: str) -> Dict[str, Any]:
     """
@@ -213,7 +184,9 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
     Returns a structured dict; the agent should interpret it using skills.
     """
     ticker = ticker.upper().strip()
+    start_time = time.time()
     print(f" [Quant Tool] Fetching Deep Financials for {ticker}...")
+    api_logger.log_request("yfinance", "get_info", ticker)
 
 
     try:
@@ -556,7 +529,8 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             "risk_metrics": risk_metrics,
             "financial_trends": financial_trends,
             "volume_trends": volume_trends,
-            "dividend_trends": dividend_trends
+            "dividend_trends": dividend_trends,
+            "company_name": info.get("longName")
         }
 
         # Sanitize all values to ensure JSON/literal_eval compatibility
@@ -568,6 +542,9 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
         }
 
     except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        api_logger.log_response("yfinance", "error", duration_ms)
+        error_logger.log_exception("_get_deep_financials", ticker)
         return {
             "status": "error",
             "error_message": f"Failed to fetch financials for {ticker}: {e}",
@@ -601,7 +578,9 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
     from utils.cli_logger import logger
     
     ticker = ticker.upper().strip()
+    start_time = time.time()
     print(f" [News Tool] Scanning headlines for {ticker}...")
+    api_logger.log_request("ddgs", "news_search", ticker)
 
 
     search_queries = [
@@ -622,6 +601,11 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
         # Investor Relations & Transparency
         f"{ticker} investor presentation earnings call transcript",
         f"{ticker} annual report integrated report",
+
+        # Future Scope from Annual Reports (Global)
+        f"{ticker} annual report forward outlook guidance",
+        f"{ticker} management discussion future plans",
+        f"{ticker} investor presentation strategy",
     ]
 
 
@@ -631,23 +615,29 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
 
     for q in search_queries:
         time.sleep(0.3)  # Rate limit: 300ms delay to avoid empty gzip responses
-        try:
-            with DDGS() as ddgs:
-                results = list(ddgs.news(q, max_results=3))
-            if results:
-                for r in results:
-                    signal = {
-                        "query": q,
-                        "title": r.get("title"),
-                        "date": r.get("date"),
-                        "url": r.get("url", ""),
-                    }
-                    signals.append(signal)
-                    # Stream each news item to CLI in real-time
-                    source = _extract_domain(signal.get('url', ''))
-                    logger.log_news_item(signal.get("title", ""), signal.get("date", ""), source)
-        except Exception as e:
-            errors.append({"query": q, "error": str(e)})
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                with DDGS() as ddgs:
+                    results = list(ddgs.news(q, max_results=3))
+                if results:
+                    for r in results:
+                        signal = {
+                            "query": q,
+                            "title": r.get("title"),
+                            "date": r.get("date"),
+                            "url": r.get("url", ""),
+                        }
+                        signals.append(signal)
+                        # Stream each news item to CLI in real-time
+                        source = _extract_domain(signal.get('url', ''))
+                        logger.log_news_item(signal.get("title", ""), signal.get("date", ""), source)
+                break  # Success, exit retry loop
+            except Exception as e:
+                if attempt < max_retries:
+                    time.sleep(1 * (attempt + 1))  # Exponential backoff
+                    continue
+                errors.append({"query": q, "error": str(e)})
 
 
     if not signals:
@@ -664,6 +654,10 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
             )
         summary = "\n\n".join(parts)
 
+
+    # Log API response
+    duration_ms = (time.time() - start_time) * 1000
+    api_logger.log_response("ddgs", "success", duration_ms, len(signals))
 
     return {
         "status": "success",
@@ -828,17 +822,6 @@ search_google_news_tool = StructuredTool.from_function(
     ),
     func=_search_google_news,
 )
-
-
-# Convenience export
-ALL_TOOLS = [
-    make_plan_tool,
-    load_skill_tool,
-    get_deep_financials_tool,
-    check_strategic_triggers_tool,
-    search_web_tool,
-    search_google_news_tool,
-]
 
 
 def resolve_ticker(query: str) -> str:

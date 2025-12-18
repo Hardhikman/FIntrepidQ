@@ -2,7 +2,7 @@ from typing import Dict, Any
 from langgraph.prebuilt import create_react_agent
 from tools.definitions import load_skill_tool
 from context_engineering.prompts import analysis_agent_prompt
-from utils.llm_helper import get_llm_with_fallback
+from utils.config import get_llm_with_fallback
 
 def build_analysis_agent(use_fallback: bool = False):
     """

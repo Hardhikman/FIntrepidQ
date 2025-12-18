@@ -421,3 +421,121 @@ class IntrepidQLogger:
 
 # Global instance
 logger = IntrepidQLogger(verbose=False)
+
+
+# STRUCTURED FILE LOGGING (Production/Debug)
+
+import sys
+import logging
+import json
+from datetime import datetime
+from pathlib import Path
+from logging.handlers import RotatingFileHandler
+
+# Log directory
+LOG_DIR = Path(__file__).parent.parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+# Log file paths
+ANALYSIS_LOG = LOG_DIR / "analysis.log"
+ERROR_LOG = LOG_DIR / "errors.log"
+API_LOG = LOG_DIR / "api_calls.log"
+
+
+class JSONFormatter(logging.Formatter):
+    """Custom JSON formatter for structured logging."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        log_data = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+        }
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+        if hasattr(record, "extra_data"):
+            log_data["data"] = record.extra_data
+        return json.dumps(log_data, default=str)
+
+
+class StructuredLogger:
+    """File logger with JSON format and rotation."""
+    
+    def __init__(self, name: str, log_file: Path = ANALYSIS_LOG, level: int = logging.INFO):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(level)
+        self.logger.propagate = False
+        self.logger.handlers.clear()
+        
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=10*1024*1024, backupCount=5, encoding="utf-8"
+        )
+        file_handler.setFormatter(JSONFormatter())
+        self.logger.addHandler(file_handler)
+    
+    def info(self, message: str, data: Optional[Dict[str, Any]] = None):
+        self.logger.info(message, extra={"extra_data": data} if data else {})
+    
+    def warning(self, message: str, data: Optional[Dict[str, Any]] = None):
+        self.logger.warning(message, extra={"extra_data": data} if data else {})
+    
+    def error(self, message: str, data: Optional[Dict[str, Any]] = None, exc_info: bool = False):
+        if exc_info:
+            self.logger.exception(message, extra={"extra_data": data} if data else {})
+        else:
+            self.logger.error(message, extra={"extra_data": data} if data else {})
+
+
+class AnalysisLogger(StructuredLogger):
+    """Logger for analysis pipeline events."""
+    def __init__(self):
+        super().__init__("intrepidq.analysis", ANALYSIS_LOG)
+    
+    def log_phase_start(self, phase: str, ticker: str):
+        self.info(f"Phase started: {phase}", {"event": "phase_start", "phase": phase, "ticker": ticker})
+    
+    def log_phase_complete(self, phase: str, ticker: str, duration_seconds: float):
+        self.info(f"Phase completed: {phase}", {"event": "phase_complete", "phase": phase, "ticker": ticker, "duration_seconds": round(duration_seconds, 2)})
+
+
+class APILogger(StructuredLogger):
+    """Logger for external API calls."""
+    def __init__(self):
+        super().__init__("intrepidq.api", API_LOG)
+    
+    def log_request(self, service: str, endpoint: str, ticker: str):
+        self.info(f"API request: {service}", {"event": "api_request", "service": service, "endpoint": endpoint, "ticker": ticker})
+    
+    def log_response(self, service: str, status: str, duration_ms: float, data_size: int = 0):
+        self.info(f"API response: {service}", {"event": "api_response", "service": service, "status": status, "duration_ms": round(duration_ms, 2)})
+
+
+class ErrorLogger(StructuredLogger):
+    """Logger for errors and exceptions."""
+    def __init__(self):
+        super().__init__("intrepidq.errors", ERROR_LOG, level=logging.ERROR)
+    
+    def log_exception(self, context: str, ticker: str = "", phase: str = ""):
+        self.error(f"Exception in {context}", {"event": "exception", "context": context, "ticker": ticker, "phase": phase}, exc_info=True)
+    
+    def log_validation_error(self, field: str, value: Any, reason: str):
+        self.error(f"Validation failed: {field}", {"event": "validation_error", "field": field, "value": str(value)[:100], "reason": reason})
+
+
+# Global structured logger instances
+analysis_logger = AnalysisLogger()
+api_logger = APILogger()
+error_logger = ErrorLogger()
+
+
+def setup_logging(verbose: bool = False):
+    """Initialize the logging system. Call once at startup."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(level=level, handlers=[logging.NullHandler()])
+    if verbose:
+        analysis_logger.logger.setLevel(logging.DEBUG)
+        api_logger.logger.setLevel(logging.DEBUG)

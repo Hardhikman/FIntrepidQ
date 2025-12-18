@@ -18,6 +18,7 @@ env/
 reports/
 equity_ai.db
 *.log
+logs/
 *.txt
 docs/
 
