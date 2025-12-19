@@ -27,20 +27,30 @@ async def run_analysis(ticker: str, collected_data: Dict[str, Any]) -> Dict[str,
     logger.log_step(f"Analyzing collected data for {ticker}...", emoji="🤔")
     
     # Convert collected data to string if it's a dict/object
-    # FIX: Explicitly include financial_data so the model sees the numbers, not just the "I found it" message.
+    # FIX: Explicitly include financial_data and news_data so the model sees the numbers and news sources.
     raw_output = collected_data.get("raw_output", "")
     financials = collected_data.get("financial_data", {})
+    news = collected_data.get("news_data", {})
+    
+    import json
+    parts = []
     
     if financials:
-        import json
         try:
             financials_str = json.dumps(financials, indent=2)
-            data_str = f"FINANCIAL DATA:\n{financials_str}\n\nOTHER CONTEXT:\n{raw_output}"
-        except (TypeError, ValueError) as e:
-            # Handle non-serializable objects
-            data_str = str(collected_data)
-    else:
-        data_str = str(collected_data.get("raw_output", collected_data))
+            parts.append(f"FINANCIAL DATA:\n{financials_str}")
+        except (TypeError, ValueError):
+            parts.append(f"FINANCIAL DATA: {str(financials)}")
+            
+    if news:
+        try:
+            news_str = json.dumps(news, indent=2)
+            parts.append(f"NEWS & STRATEGIC SIGNALS:\n{news_str}")
+        except (TypeError, ValueError):
+            parts.append(f"NEWS & STRATEGIC SIGNALS: {str(news)}")
+            
+    parts.append(f"OTHER CONTEXT:\n{raw_output}")
+    data_str = "\n\n".join(parts)
     
     # Extract system message
     system_message = analysis_agent_prompt.messages[0].prompt.template

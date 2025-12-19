@@ -58,8 +58,13 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
     last_message = result["messages"][-1]
     output_content = last_message.content
     
-    # Extract financial data from tool messages in history AND log tool usage
+    # Extract financial AND news data from tool messages in history AND log tool usage
     financial_data = {}
+    news_data = {
+        "strategic_signals": [],
+        "google_news": [],
+        "web_search": []
+    }
     from langchain_core.messages import ToolMessage, AIMessage
 
     # Log tool usage from history
@@ -68,56 +73,63 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
              for tool_call in msg.tool_calls:
                  logger.log_tool_used(tool_call['name'], tool_call['args'])
     
+    import json
+    import ast
+    import re
+
     for msg in result["messages"]:
-        if isinstance(msg, ToolMessage) and msg.name == "get_deep_financials":
-            # The content is usually a string representation of the dict
-            # We might need to parse it or rely on the fact that we just want to pass it to validation
-            # But validation expects a dict.
-            # Let's try to eval it if it's a string, or check if it's already a dict (unlikely for ToolMessage content)
-            import json
-            import ast
-            import re
-            
-            data = None
+        if not isinstance(msg, ToolMessage):
+            continue
+
+        # Helper to parse message content
+        def parse_content(content):
+            if isinstance(content, (dict, list)):
+                return content
+            if not isinstance(content, str):
+                return None
             try:
-                if isinstance(msg.content, dict):
-                    # Already a dict
-                    data = msg.content
-                elif isinstance(msg.content, str):
-                    # String - try parsing
-                    content_str = msg.content
-                    
-                    # Try JSON first
-                    try:
-                        data = json.loads(content_str)
-                    except json.JSONDecodeError:
-                        
-                        # Sanitize string for ast.literal_eval
-                        # Replace numpy/Python float references with None or string equivalents
-                        fixed_str = re.sub(r'\bnp\.nan\b', 'None', content_str)
-                        fixed_str = re.sub(r'\bnp\.inf\b', 'None', fixed_str)
-                        fixed_str = re.sub(r'\bfloat\([\'"]inf[\'"]\)', 'None', fixed_str)
-                        fixed_str = re.sub(r'\bfloat\([\'"]nan[\'"]\)', 'None', fixed_str)
-                        fixed_str = re.sub(r'(?<![a-zA-Z_])\binf\b(?![a-zA-Z_])', 'None', fixed_str)
-                        fixed_str = re.sub(r'(?<![a-zA-Z_])\bnan\b(?![a-zA-Z_])', 'None', fixed_str)
-                        fixed_str = re.sub(r'(?<![a-zA-Z_])\bNaN\b(?![a-zA-Z_])', 'None', fixed_str)
-                        fixed_str = re.sub(r'(?<![a-zA-Z_])\bInfinity\b(?![a-zA-Z_])', 'None', fixed_str)
-                        fixed_str = re.sub(r'(?<![a-zA-Z_])\b-Infinity\b(?![a-zA-Z_])', 'None', fixed_str)
-                        
-                        try:
-                            data = ast.literal_eval(fixed_str)
-                        except (ValueError, SyntaxError) as e_ast:
-                            logger.log_warning(f"Failed to parse tool output with ast.literal_eval: {e_ast}")
-                
-                if data and isinstance(data, dict) and data.get("status") == "success":
-                    financial_data = data.get("data", {})
-                    logger.log_success(f"Successfully extracted financial data for {ticker}")
-                    break
-            except (json.JSONDecodeError, ValueError, SyntaxError, TypeError, KeyError) as e:
-                logger.log_error(f"Error parsing financial data: {e}")
+                return json.loads(content)
+            except json.JSONDecodeError:
+                fixed_str = re.sub(r'\bnp\.nan\b', 'None', content)
+                fixed_str = re.sub(r'\bnp\.inf\b', 'None', fixed_str)
+                fixed_str = re.sub(r'\bfloat\([\'"]inf[\'"]\)', 'None', fixed_str)
+                fixed_str = re.sub(r'\bfloat\([\'"]nan[\'"]\)', 'None', fixed_str)
+                fixed_str = re.sub(r'(?<![a-zA-Z_])\binf\b(?![a-zA-Z_])', 'None', fixed_str)
+                fixed_str = re.sub(r'(?<![a-zA-Z_])\bnan\b(?![a-zA-Z_])', 'None', fixed_str)
+                fixed_str = re.sub(r'(?<![a-zA-Z_])\bNaN\b(?![a-zA-Z_])', 'None', fixed_str)
+                try:
+                    return ast.literal_eval(fixed_str)
+                except (ValueError, SyntaxError):
+                    return None
+
+        if msg.name == "get_deep_financials":
+            data = parse_content(msg.content)
+            if data and isinstance(data, dict) and data.get("status") == "success":
+                financial_data = data.get("data", {})
+                logger.log_success(f"Successfully extracted financial data for {ticker}")
+        
+        elif msg.name == "check_strategic_triggers":
+            data = parse_content(msg.content)
+            if data and isinstance(data, dict) and data.get("status") == "success":
+                signals = data.get("data", {}).get("signals", [])
+                news_data["strategic_signals"].extend(signals)
+                logger.log_success(f"Successfully extracted {len(signals)} strategic signals for {ticker}")
+
+        elif msg.name == "search_google_news":
+            data = parse_content(msg.content)
+            if isinstance(data, list):
+                news_data["google_news"].extend(data)
+                logger.log_success(f"Successfully extracted {len(data)} Google News items for {ticker}")
+
+        elif msg.name == "search_web":
+            data = parse_content(msg.content)
+            if isinstance(data, list):
+                news_data["web_search"].extend(data)
+                logger.log_success(f"Successfully extracted {len(data)} web search items for {ticker}")
 
     # Sanitize data for JSON serialization (handles numpy types, NaN, etc.)
     financial_data = _sanitize_for_json(financial_data)
+    news_data = _sanitize_for_json(news_data)
     
     if not financial_data:
         logger.log_warning("No financial_data extracted from tool outputs!")
@@ -128,5 +140,6 @@ async def run_data_collection(ticker: str) -> Dict[str, Any]:
     return {
         "ticker": ticker,
         "raw_output": output_content,
-        "financial_data": financial_data
+        "financial_data": financial_data,
+        "news_data": news_data
     }

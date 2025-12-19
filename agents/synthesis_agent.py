@@ -31,7 +31,21 @@ async def run_synthesis(ticker: str, analysis_result: Dict[str, Any], validation
     # Extract relevant parts
     analysis_output = analysis_result.get("analysis_output", "No analysis provided.")
     validation_report = validation_result.get("validation_report", "No validation report.")
-    data_summary = data_result.get("raw_output", "No data summary.")
+    
+    # Enrich data summary with structured news data if available
+    raw_output = data_result.get("raw_output", "")
+    news_data = data_result.get("news_data", {})
+    
+    import json
+    data_parts = [f"RAW TOOL OUTPUTS:\n{raw_output}"]
+    if news_data:
+        try:
+            news_str = json.dumps(news_data, indent=2)
+            data_parts.append(f"STRUCTURED NEWS DATA:\n{news_str}")
+        except (TypeError, ValueError):
+            data_parts.append(f"STRUCTURED NEWS DATA: {str(news_data)}")
+            
+    data_summary = "\n\n".join(data_parts)
     
     # Get current date for the report
     current_date = datetime.now().strftime("%B %d, %Y")

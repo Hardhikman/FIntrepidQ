@@ -622,16 +622,18 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
                     results = list(ddgs.news(q, max_results=3))
                 if results:
                     for r in results:
+                        source = _extract_domain(r.get('url', ''))
                         signal = {
                             "query": q,
                             "title": r.get("title"),
                             "date": r.get("date"),
                             "url": r.get("url", ""),
+                            "source": source
                         }
                         signals.append(signal)
                         # Stream each news item to CLI in real-time
-                        source = _extract_domain(signal.get('url', ''))
                         logger.log_news_item(signal.get("title", ""), signal.get("date", ""), source)
+
                 break  # Success, exit retry loop
             except Exception as e:
                 if attempt < max_retries:
@@ -798,14 +800,15 @@ def _search_google_news(query: str, max_results: int = 5) -> List[Dict[str, str]
 
         final_results = []
         for r, resolved in zip(results, resolved_urls):
+            source = _extract_domain(resolved)
             result = {
                 "title": r.title,
                 "url": resolved,
-                "published_date": r.published_date
+                "published_date": r.published_date,
+                "source": source
             }
             final_results.append(result)
             # Stream each news item to CLI in real-time
-            source = _extract_domain(resolved)
             logger.log_news_item(r.title, r.published_date[:20] if r.published_date else "", source)
             
         return final_results
