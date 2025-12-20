@@ -775,7 +775,7 @@ def _resolve_google_news_url(url: str) -> str:
         print(f"Error resolving URL {url}: {e}")
         return url
 
-def _search_google_news(query: str, max_results: int = 5) -> List[Dict[str, str]]:
+def _search_google_news(query: str, max_results: int = 10) -> List[Dict[str, str]]:
     """
     Search Google News for articles matching a given query.
     """
