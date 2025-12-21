@@ -284,16 +284,32 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 # Extract dates and convert to string
                 quarter_dates = [d.strftime('%Y-%m-%d') for d in q_fin.columns[:4]] if not q_fin.empty else []
                 
-                # Revenue & Debt
+                # Revenue, Debt & Interest
                 recent_rev = q_fin.loc['Total Revenue'].head(4).tolist() if 'Total Revenue' in q_fin.index else []
                 recent_debt = q_bal.loc['Total Debt'].head(4).tolist() if 'Total Debt' in q_bal.index else []
+                recent_ebit = q_fin.loc['EBIT'].head(4).tolist() if 'EBIT' in q_fin.index else []
+                recent_interest = []
+                if 'Interest Expense' in q_fin.index:
+                    recent_interest = q_fin.loc['Interest Expense'].head(4).tolist()
+                elif 'Interest Expense Non Operating' in q_fin.index:
+                    recent_interest = q_fin.loc['Interest Expense Non Operating'].head(4).tolist()
+                elif 'Net Interest Income' in q_fin.index:
+                    # If Net Interest Income is negative, it's net expense
+                    recent_interest = [abs(x) if x is not None and x < 0 else 0 for x in q_fin.loc['Net Interest Income'].head(4).tolist()]
                 
-                # CapEx Tracking
+                # CapEx & FCF Tracking
                 recent_capex = []
-                if not q_cf.empty and 'Capital Expenditure' in q_cf.index:
-                    recent_capex = q_cf.loc['Capital Expenditure'].head(4).tolist()
-                elif not q_cf.empty and 'Capital Expenditures' in q_cf.index:
-                    recent_capex = q_cf.loc['Capital Expenditures'].head(4).tolist()
+                recent_fcf = []
+                if not q_cf.empty:
+                    if 'Capital Expenditure' in q_cf.index:
+                        recent_capex = q_cf.loc['Capital Expenditure'].head(4).tolist()
+                    elif 'Capital Expenditures' in q_cf.index:
+                        recent_capex = q_cf.loc['Capital Expenditures'].head(4).tolist()
+                    
+                    if 'Free Cash Flow' in q_cf.index:
+                        recent_fcf = q_cf.loc['Free Cash Flow'].head(4).tolist()
+                    elif 'Changes In Cash' in q_cf.index: # Fallback if FCF not explicit
+                        recent_fcf = q_cf.loc['Changes In Cash'].head(4).tolist()
                 
                 # Retained Earnings
                 recent_retained_earnings = []
@@ -312,12 +328,16 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     "capex_quarters": recent_capex,
                     "retained_earnings_quarters": recent_retained_earnings,
                     "net_income_quarters": recent_net_income,
+                    "fcf_quarters": recent_fcf,
+                    "ebit_quarters": recent_ebit,
+                    "interest_quarters": recent_interest,
                     # Quarterly trends (Q-o-Q) with safe comparison
                     "revenue_trend_qoq": _safe_trend(recent_rev, increasing=True),
                     "debt_trend_qoq": _safe_trend(recent_debt, increasing=False),
                     "capex_trend_qoq": _safe_trend(recent_capex, increasing=True, use_abs=True),
                     "retained_earnings_trend_qoq": _safe_trend(recent_retained_earnings, increasing=True),
                     "net_income_trend_qoq": _safe_trend(recent_net_income, increasing=True),
+                    "fcf_trend_qoq": _safe_trend(recent_fcf, increasing=True),
                 }
             
             #ANNUAL TRENDS 
@@ -330,8 +350,16 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 # Extract year dates (last 3 years)
                 year_dates = [d.strftime('%Y') for d in a_fin.columns[:3]] if not a_fin.empty else []
                 
-                # Annual Revenue
+                # Annual Revenue & EBIT
                 annual_rev = a_fin.loc['Total Revenue'].head(3).tolist() if 'Total Revenue' in a_fin.index else []
+                annual_ebit = a_fin.loc['EBIT'].head(3).tolist() if 'EBIT' in a_fin.index else []
+                annual_interest = []
+                if 'Interest Expense' in a_fin.index:
+                    annual_interest = a_fin.loc['Interest Expense'].head(3).tolist()
+                elif 'Interest Expense Non Operating' in a_fin.index:
+                    annual_interest = a_fin.loc['Interest Expense Non Operating'].head(3).tolist()
+                elif 'Net Interest Income' in a_fin.index:
+                    annual_interest = [abs(x) if x is not None and x < 0 else 0 for x in a_fin.loc['Net Interest Income'].head(3).tolist()]
                 
                 # Annual Debt
                 annual_debt = a_bal.loc['Total Debt'].head(3).tolist() if 'Total Debt' in a_bal.index else []
@@ -342,6 +370,14 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     annual_capex = a_cf.loc['Capital Expenditure'].head(3).tolist()
                 elif not a_cf.empty and 'Capital Expenditures' in a_cf.index:
                     annual_capex = a_cf.loc['Capital Expenditures'].head(3).tolist()
+                
+                # Annual FCF
+                annual_fcf = []
+                if not a_cf.empty:
+                    if 'Free Cash Flow' in a_cf.index:
+                        annual_fcf = a_cf.loc['Free Cash Flow'].head(3).tolist()
+                    elif 'Changes In Cash' in a_cf.index:
+                        annual_fcf = a_cf.loc['Changes In Cash'].head(3).tolist()
                 
                 # Annual Retained Earnings
                 annual_retained_earnings = []
@@ -366,6 +402,9 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     "retained_earnings_annual": annual_retained_earnings,
                     "net_income_annual": annual_net_income,
                     "total_assets_annual": annual_assets,
+                    "fcf_annual": annual_fcf,
+                    "ebit_annual": annual_ebit,
+                    "interest_annual": annual_interest,
                     # Annual trends (Y-o-Y) with safe comparison
                     "revenue_trend_yoy": _safe_trend(annual_rev, increasing=True),
                     "debt_trend_yoy": _safe_trend(annual_debt, increasing=False),
@@ -373,6 +412,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                     "retained_earnings_trend_yoy": _safe_trend(annual_retained_earnings, increasing=True),
                     "net_income_trend_yoy": _safe_trend(annual_net_income, increasing=True),
                     "assets_trend_yoy": _safe_trend(annual_assets, increasing=True),
+                    "fcf_trend_yoy": _safe_trend(annual_fcf, increasing=True),
                 }
             
             # Combine both quarterly and annual trends
@@ -480,13 +520,63 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 
                 if stockholders_equity is not None and stockholders_equity != 0:
                     debt_to_equity_calculated = total_debt / stockholders_equity
-                    print(f" [Quant Tool] Calculated debt_to_equity: {debt_to_equity_calculated:.4f}")
                 elif total_debt == 0:
                     # If no debt and no equity data, debt_to_equity is 0
                     debt_to_equity_calculated = 0.0
                     
         except Exception as e:
             print(f"Warning: Could not calculate debt_to_equity: {e}")
+
+        # 8. ICR Calculation (NEW)
+        # ICR = EBIT / Interest Expense
+        icr_analysis = {}
+        try:
+            # Safely calculate ICR from annual data
+            annual_ebit_list = annual_data.get("ebit_annual", [])
+            annual_int_list = annual_data.get("interest_annual", [])
+            
+            icr_values = []
+            for i in range(min(len(annual_ebit_list), len(annual_int_list))):
+                ebit = annual_ebit_list[i]
+                interest = abs(annual_int_list[i]) if annual_int_list[i] is not None else None
+                if ebit is not None:
+                    if interest and interest != 0:
+                        icr_values.append(ebit / interest)
+                    elif interest == 0:
+                        # If zero interest, ICR is technically infinite (Very Strong)
+                        # We use a high constant or Handle it in level categorization
+                        icr_values.append(float('inf'))
+                    else:
+                        icr_values.append(None)
+                else:
+                    icr_values.append(None)
+            
+            latest_icr = icr_values[0] if icr_values else None
+            
+            def _get_icr_level(val):
+                if val is None: return "unknown"
+                if val == float('inf') or val > 10.0: return "exceptional"
+                if val > 3.0: return "strong"
+                if val >= 2.0: return "acceptable"
+                if val >= 1.5: return "fair"
+                if val >= 1.0: return "risk"
+                return "high risk"
+
+            icr_analysis = {
+                "icr_value": latest_icr,
+                "icr_level": _get_icr_level(latest_icr),
+                "icr_history_annual": icr_values,
+                "icr_trend_yoy": _safe_trend(icr_values, increasing=True)
+            }
+        except Exception as e:
+            print(f"Warning: Could not calculate ICR analysis: {e}")
+
+        # Add FCF trend to financial_trends
+        if "financial_trends" in locals() or "financial_trends" in globals():
+            financial_trends["fcf_trend"] = {
+                "qoq": quarterly_data.get("fcf_trend_qoq", "unknown"),
+                "yoy": annual_data.get("fcf_trend_yoy", "unknown")
+            }
 
         financial_data = {
             "ticker": ticker,
@@ -528,6 +618,7 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
             "technicals": technicals,
             "risk_metrics": risk_metrics,
             "financial_trends": financial_trends,
+            "icr_analysis": icr_analysis,
             "volume_trends": volume_trends,
             "dividend_trends": dividend_trends,
             "company_name": info.get("longName")
@@ -597,7 +688,12 @@ def _check_strategic_triggers(ticker: str) -> Dict[str, Any]:
         f"{ticker} macroeconomic impact interest rates inflation supply chain",
         f"{ticker} ESG environment social governance rating controversy",
         f"{ticker} insider trading management buying selling",
-
+        
+        # Specific Red Flags (NEW)
+        f"{ticker} investigation legal proceeding lawsuit regulatory action",
+        f"{ticker} management reshuffle CEO exit leadership change audit committee",
+        f"{ticker} promoter share pledge reduction selling pledge release",
+        
         # Investor Relations & Transparency
         f"{ticker} investor presentation earnings call transcript",
         f"{ticker} annual report integrated report",

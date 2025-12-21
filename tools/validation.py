@@ -107,6 +107,9 @@ OPTIONAL_METRICS = [
     "dividend_yield",
     "payout_ratio",
     "return_on_assets",
+    "return_on_capital_employed",
+    "price_to_book",
+    "beta",
     "operating_cashflow",
 ]
 
@@ -115,6 +118,7 @@ ADVANCED_METRICS = [
     "technicals",
     "risk_metrics",
     "financial_trends",
+    "icr_analysis",
     "volume_trends",
     "dividend_trends",
 ]

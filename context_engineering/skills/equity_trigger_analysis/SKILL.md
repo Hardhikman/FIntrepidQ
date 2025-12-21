@@ -35,9 +35,11 @@ The `get_deep_financials` tool provides the following metrics:
 **New Metrics:**
 - `technicals`: Dictionary containing `rsi`, `macd`, `sma_50`, `sma_200`, `sma_200_weeks` (200-week SMA for long-term trend).
 - `risk_metrics`: Dictionary containing `volatility_annualized`, `max_drawdown`, `sharpe_ratio`.
-- `financial_trends`: Dictionary containing `revenue_trend`, `debt_trend`, `capex_trend`, `retained_earnings_trend` (based on last 4 quarters).
+- `financial_trends`: Dictionary containing `revenue_trend`, `debt_trend`, `capex_trend`, `retained_earnings_trend`, `fcf_trend` (based on last 4 quarters and last 3 years).
+- `icr_analysis`: Dictionary containing `icr_value`, `icr_level`, and `icr_trend_yoy`.
 - `volume_trends`: Dictionary containing `latest_volume`, `avg_volume_10d`, `avg_volume_50d`, `volume_spike`, `volume_trend`.
 - `dividend_trends`: Dictionary containing `annual_dividends`, `dividend_years`, `dividend_trend`.
+- `payout_ratio`: Dividend payout ratio (percentage of earnings paid as dividends).
 
 ## Analysis Rules by Metric Category
 
@@ -103,6 +105,22 @@ The `get_deep_financials` tool provides the following metrics:
 - 🟢 Growing Retained Earnings: `retained_earnings_trend == "increasing"` (Reinvesting profits)
 - 🚩 Declining Retained Earnings: `retained_earnings_trend == "decreasing"` (Burning through reserves)
 
+**Free Cash Flow (FCF) Trend (NEW)**
+- 🟢 Improving FCF: `fcf_trend == "increasing"` (Positive for dividends/debt repayment)
+- 🚩 Declining FCF: `fcf_trend == "decreasing"` (Caution: cash generation weakening)
+
+**Net Profit (Net Income) Trend**
+- 🟢 Improving Profitability: `net_income_trend == "increasing"` (Green Flag)
+- 🚩 Declining Profitability: `net_income_trend == "decreasing"` (Red Flag)
+
+**Interest Coverage Ratio (ICR) Analysis (NEW)**
+- 🟢 **Strong**: `icr_value > 3.0` (Comfortably covers interest)
+- 🟡 **Acceptable**: `2.0 <= icr_value <= 3.0`
+- 🟡 **Fair**: `1.5 <= icr_value < 2.0`
+- 🚩 **Risk**: `1.0 <= icr_value < 1.5` (Increasing default risk)
+- 💀 **High Risk**: `icr_value < 1.0` (Inability to cover interest from earnings)
+- 🟢 **Exceptional**: `icr_value > 10.0`
+
 ### 4. Volume Analysis (NEW)
 
 **Volume Trends**
@@ -131,7 +149,10 @@ The `get_deep_financials` tool provides the following metrics:
 
 **Leverage & Cash Flow**
 - 🚩 High leverage: `debt_to_equity > 2.0`
+- 🟢 Sustainable Dividends: `payout_ratio < 0.60` (Comfortable)
+- 🚩 Risky Payout: `payout_ratio > 0.90` (Potential for cut)
 - 🟢 Positive FCF: `free_cash_flow > 0`
+- 🟢 Improving ICR: `icr_trend_yoy == "increasing"`
 
 ### 7. Qualitative & Strategic Signals (Expanded)
 
@@ -139,18 +160,23 @@ The `check_strategic_triggers` tool now searches for:
 - **Management**: Vision, ethics, track record.
 - **Brand**: Reputation, sentiment.
 - **Macro**: Inflation, interest rates, supply chain.
+- **Industry Tailwinds**: Sector growth, favorable regulations, technological shifts.
 - **ESG**: Environmental, social, governance.
 
 **GREEN FLAG Keywords:**
 - "beat", "outperform", "strong results", "exceeded"
 - "expansion", "new markets", "new clients", "growth"
 - "visionary leadership", "strong brand loyalty", "resilient supply chain"
+- "industry tailwind", "sector tailwind", "favorable regulation", "market leader"
 - "ESG leader", "sustainable", "ethical"
 
 **RED FLAG Keywords:**
 - "miss", "weak", "disappoint", "below expectations"
 - "regulatory issues", "investigation", "lawsuit", "scandal"
 - "management turnover", "insider selling", "toxic culture"
+- "investigation", "lawsuit", "legal proceeding", "regulatory action"
+- "management reshuffle", "audit committee change", "CEO resignation"
+- "promoter pledge", "share reduction", "pledged shares"
 - "supply chain disruption", "inflationary pressure"
 
 **Investor Relations & Transparency (NEW)**

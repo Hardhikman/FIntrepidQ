@@ -168,34 +168,25 @@ Final reports include:
 ```
 Intrepidq_equity/
 ├── agents/                    # Multi-agent system
-│   ├── __init__.py
-│   ├── data_agent.py         # Data collection
-│   ├── validation_agent.py   # Quality validation
-│   ├── analysis_agent.py     # Investment analysis
-│   ├── synthesis_agent.py    # Report synthesis
-│   ├── chat_agent.py         # Chat interface agent
-│   └── graph.py              # LangGraph workflow orchestration
-├── context_engineering/       # Prompts and skills
-│   ├── prompts.py            # Agent prompts
-│   ├── memory.py             # Database interactions
-│   └── skills/
-│       └── equity_trigger_analysis/
-│           └── SKILL.md      # Analysis rules & interpretation
+│   ├── data_agent.py          # Data collection
+│   ├── validation_agent.py    # Quality validation
+│   ├── analysis_agent.py      # Investment analysis
+│   ├── synthesis_agent.py     # Report synthesis
+│   ├── chat_agent.py          # Chat interface agent
+│   └── graph.py               # LangGraph workflow orchestration
+├── context_engineering/        # Prompts and skills
+│   ├── prompts.py             # Agent prompts
+│   ├── memory.py              # Database interactions
+│   └── skills/                # Analysis frameworks
 ├── tools/                     # Tool definitions
-│   ├── definitions.py        # Financial & news tools (yfinance, DDGS)
-│   ├── validation.py         # Data quality checks
-│   ├── chat_tools.py         # Chat-specific tools
-│   └── alpha_vantage_client.py  # Alpha Vantage API client
-├── db_fileops/                # Database operations
-│   ├── db_maintenance.py     # Cleanup & maintenance scripts
-│   └── view_db.py            # Database viewer utility
+│   ├── definitions.py         # Financial & news tools (yfinance, DDGS)
+│   ├── validation.py          # Data quality checks
+│   ├── chat_tools.py          # Chat-specific tools
+│   └── alpha_vantage_client.py # Alpha Vantage API client
 ├── utils/                     # Utilities
-│   ├── cli_logger.py         # Rich CLI logging with progress tracking
-│   ├── models.py             # Pydantic data models for financial data
-│   ├── config.py             # Configuration settings
-│   └── llm_helper.py         # LLM initialization & fallback
-├── docs/                      # Documentation
-│   └── future_prospects.md   # Roadmap & planned features
+│   ├── cli_logger.py          # Rich CLI logging with progress tracking
+│   ├── models.py              # Pydantic data models for financial data
+│   └── config.py              # Configuration settings + LLM factory
 ├── chat.py                    # Unified CLI entry point
 ├── .env.example               # Environment template
 └── requirements.txt           # Dependencies
@@ -248,13 +239,26 @@ Edit `config.py` to customize:
 - **Database Retention**: Configure `ACTIVE_REPORTS_PER_TICKER` (Default: 3) and auto-cleanup settings
 - **User ID**: Default user identifier
 
-## 📚 Documentation
+## 📝 Version History
 
-Detailed documentation is available in the `docs/` directory, covering:
-- **Project Overview**: Complete architecture and system summary.
-- **Operations**: Guides for interactive chat and database management.
-- **Metrics**: Definitions for advanced quantitative and risk metrics.
-- **Validation**: Details on the data quality and confidence scoring system.
+**v4.1** (Dec 20th 2025) - Qualitative & Solvency Deepening
+- ✅ FCF Trend Tracking (QoQ & YoY)
+- ✅ Interest Coverage Ratio (ICR) analysis
+- ✅ ROCE & ROA implementation
+- ✅ Enhanced Red Flag signals (Legal, Management, Promoter Pledges)
+- ✅ Industry Tailwind detection
+
+**v4.0** (Dec 2024) - Production Hardening
+- ✅ Input validation with security checks
+- ✅ Retry logic for API calls
+- ✅ Structured JSON logging
+- ✅ Workflow abort on critical failure
+- ✅ Compact report format
+- ✅ Lean file structure (merged utils files)
+
+**v3.1** - Enhanced CLI Logging
+**v3.0** - Multi-Agent Architecture
+**v2.0** - Validation Agent
 
 ## 🛠️ Technologies
 
