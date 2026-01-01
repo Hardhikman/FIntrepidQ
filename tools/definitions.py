@@ -19,6 +19,23 @@ import numpy as np
 
 from utils.cli_logger import api_logger, error_logger
 
+# Import Rust accelerated functions
+from rust_finance import (
+    # Risk calculations
+    calculate_volatility as rust_volatility,
+    calculate_sharpe_ratio as rust_sharpe,
+    calculate_max_drawdown as rust_max_drawdown,
+    calculate_var_95 as rust_var_95,
+    # Technical indicators
+    calculate_sma as rust_sma,
+    calculate_rsi as rust_rsi,
+    calculate_macd as rust_macd,
+    # Utilities
+    detect_trend as rust_detect_trend,
+    detect_volume_spike as rust_volume_spike,
+)
+print("🦀 rust_finance loaded - using Rust accelerated calculations")
+
 
 # Cache for 1 hour (3600 seconds)
 cache = TTLCache(maxsize=100, ttl=3600)
@@ -93,41 +110,25 @@ def _extract_domain(url: str) -> str:
 
 def _safe_trend(values: list, increasing: bool = True, use_abs: bool = False) -> str:
     """
-    Safely compare trend values, handling None/NaN/empty lists.
-    
-    Args:
-        values: List of numeric values (most recent first)
-        increasing: If True, check for increasing trend; if False, check for decreasing
-        use_abs: If True, use absolute values for comparison (e.g., for CapEx)
-    
-    Returns:
-        'increasing', 'decreasing', or 'unknown' if comparison cannot be made
+    Detect trend using Rust. Handles None/NaN/empty lists.
     """
     if not values or len(values) < 2:
         return "unknown"
     
-    try:
-        val0, val1 = values[0], values[1]
-        
-        # Check for None or NaN
-        if val0 is None or val1 is None:
-            return "unknown"
-        if isinstance(val0, float) and (np.isnan(val0) or np.isinf(val0)):
-            return "unknown"
-        if isinstance(val1, float) and (np.isnan(val1) or np.isinf(val1)):
-            return "unknown"
-        
-        # Use absolute values if specified
-        if use_abs:
-            val0, val1 = abs(val0), abs(val1)
-        
-        # Determine trend
-        if increasing:
-            return "increasing" if val0 > val1 else "decreasing"
-        else:
-            return "decreasing" if val0 < val1 else "increasing"
-    except (TypeError, ValueError):
+    # Clean values (remove None/NaN)
+    clean_values = []
+    for v in values:
+        if v is not None:
+            try:
+                if not (np.isnan(v) or np.isinf(v)):
+                    clean_values.append(float(abs(v) if use_abs else v))
+            except (TypeError, ValueError):
+                pass
+    
+    if len(clean_values) < 2:
         return "unknown"
+    
+    return rust_detect_trend(clean_values)
 
 
 # SKILL LOADER TOOL
@@ -200,31 +201,13 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
         risk_metrics = {}
         
         if not hist.empty:
-            # Daily SMA (50 and 200 days)
-            hist['SMA_50'] = hist['Close'].rolling(window=50).mean()
-            hist['SMA_200'] = hist['Close'].rolling(window=200).mean()
+            prices_list = hist['Close'].tolist()
             
-            # Weekly SMA (200 weeks) - resample to weekly, then calculate SMA
+            # Weekly data for 200-week SMA
             weekly_close = hist['Close'].resample('W').last()
-            sma_200_weeks = weekly_close.rolling(window=200).mean()
-            # Get the latest 200-week SMA value
-            sma_200w_value = sma_200_weeks.iloc[-1] if not sma_200_weeks.empty else None
+            weekly_prices = weekly_close.tolist()
             
-            # RSI
-            delta = hist['Close'].diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            # Avoid division by zero: if loss is 0, RS is infinite (RSI = 100)
-            rs = gain / loss.replace(0, float('nan'))
-            hist['RSI'] = 100 - (100 / (1 + rs))
-            
-            # MACD
-            exp1 = hist['Close'].ewm(span=12, adjust=False).mean()
-            exp2 = hist['Close'].ewm(span=26, adjust=False).mean()
-            macd = exp1 - exp2
-            signal = macd.ewm(span=9, adjust=False).mean()
-            
-            # Helper to safely extract values (handles NaN/None)
+            # Helper to safely extract values
             def _safe_value(val):
                 if val is None:
                     return None
@@ -235,33 +218,32 @@ def _get_deep_financials(ticker: str) -> Dict[str, Any]:
                 except (TypeError, ValueError):
                     return val
             
-            # Get latest values with consistent NaN handling
-            latest = hist.iloc[-1]
+            #1. Technical Indicators (Rust)
+            current_price = prices_list[-1] if prices_list else None
+            sma_50 = rust_sma(prices_list, 50) if len(prices_list) >= 50 else None
+            sma_200 = rust_sma(prices_list, 200) if len(prices_list) >= 200 else None
+            sma_200_weeks = rust_sma(weekly_prices, 200) if len(weekly_prices) >= 200 else None
+            rsi = rust_rsi(prices_list, 14) if len(prices_list) >= 15 else None
+            macd_result = rust_macd(prices_list) if len(prices_list) >= 26 else (None, None, None)
+            
             technicals = {
-                "current_price": _safe_value(latest['Close']),
-                "sma_50": _safe_value(latest['SMA_50']),
-                "sma_200": _safe_value(latest['SMA_200']),
-                "sma_200_weeks": _safe_value(sma_200w_value),  # NEW: 200-week SMA
-                "rsi": _safe_value(latest['RSI']),
-                "macd": _safe_value(macd.iloc[-1]),
-                "macd_signal": _safe_value(signal.iloc[-1]),
+                "current_price": _safe_value(current_price),
+                "sma_50": _safe_value(sma_50),
+                "sma_200": _safe_value(sma_200),
+                "sma_200_weeks": _safe_value(sma_200_weeks),
+                "rsi": _safe_value(rsi),
+                "macd": _safe_value(macd_result[0]) if macd_result else None,
+                "macd_signal": _safe_value(macd_result[1]) if macd_result else None,
             }
             
-            #2. Risk Metrics 
+            #2. Risk Metrics (Rust)
             daily_returns = hist['Close'].pct_change().dropna()
-            volatility = daily_returns.std() * np.sqrt(252)
+            returns_list = daily_returns.tolist()
             
-            # Max Drawdown
-            rolling_max = hist['Close'].cummax()
-            drawdown = (hist['Close'] - rolling_max) / rolling_max
-            max_drawdown = drawdown.min()
-            
-            # Sharpe Ratio (Simplified, assuming 0% risk free for now)
-            sharpe = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() != 0 else 0
-            
-            # Value at Risk (VaR) - 95% confidence
-            # The 5th percentile of daily returns
-            var_95 = daily_returns.quantile(0.05)
+            volatility = rust_volatility(returns_list) if returns_list else 0.0
+            sharpe = rust_sharpe(returns_list, 0.0) if returns_list else 0.0
+            max_drawdown = rust_max_drawdown(prices_list) if prices_list else 0.0
+            var_95 = rust_var_95(returns_list) if returns_list else 0.0
             
             risk_metrics = {
                 "volatility_annualized": volatility,

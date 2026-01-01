@@ -20,10 +20,16 @@ equity_ai.db
 *.log
 logs/
 *.txt
-docs/
+#docs/
 
 # Debug and testing
 debug_validation.py
 test_tools.py
 test_validation.py
 verify_data.py
+
+# Rust
+rust_finance/target/
+rust_finance/Cargo.lock
+*.pyd
+*.so
