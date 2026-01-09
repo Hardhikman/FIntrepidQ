@@ -2,7 +2,7 @@
 
 ## Overview
 
-The IntrepidQ Equity v3.0 system implements a comprehensive suite of advanced financial metrics through a **4-agent pipeline**. All metrics are automatically collected, validated, and analyzed with timeline tracking.
+The FIntrepidQ Equity v3.0 system implements a comprehensive suite of advanced financial metrics through a **4-agent pipeline**. All metrics are automatically collected, validated, and analyzed with timeline tracking.
 
 ## System Architecture
 

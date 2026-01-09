@@ -1,6 +1,6 @@
 # Walkthrough: Enhanced Stock Analysis Features
 
-I have upgraded the `Intrepidq_equity` system to include **Historical Context**, **Technical Analysis**, and **Risk Metrics**. This transforms the tool from a simple snapshot viewer into a more comprehensive analysis engine.
+I have upgraded the `FIntrepidQ` system to include **Historical Context**, **Technical Analysis**, and **Risk Metrics**. This transforms the tool from a simple snapshot viewer into a more comprehensive analysis engine.
 
 ## Changes Implemented
 
@@ -97,7 +97,7 @@ The system now features a professional CLI interface with real-time progress tra
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                      IntrepidQ Analysis: AAPL                        │
+│                      FIntrepidQ Analysis: AAPL                        │
 ├────────────────────┬────────────┬───────────┬────────────────────────┤
 │ Phase              │ Status     │ Time      │ Details                │
 ├────────────────────┼────────────┼───────────┼────────────────────────┤

@@ -1,4 +1,4 @@
-# IntrepidQ Equity Analysis - Project Summary
+# FIntrepidQ Equity Analysis - Project Summary
 
 ## 🎯 Project Overview
 AI-powered **multi-agent** stock analysis system providing institutional-grade, time-stamped equity research reports.

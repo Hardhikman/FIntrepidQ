@@ -1,6 +1,6 @@
 # Agent Data Flow: Collection to Analysis
 
-This document describes how data is passed between the **Data Collection Agent** and the **Analysis Agent** within the Intrepidq Equity workflow.
+This document describes how data is passed between the **Data Collection Agent** and the **Analysis Agent** within the FIntrepidQ Equity workflow.
 
 ## 🔄 The Hybrid Data Flow
 

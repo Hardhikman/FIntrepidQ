@@ -1,6 +1,6 @@
 # Future Prospects and Roadmap
 
-This document outlines the planned features and improvements for the Intrepidq Equity Analysis system.
+This document outlines the planned features and improvements for the FIntrepidQ Equity Analysis system.
 
 ## Planned Features
 

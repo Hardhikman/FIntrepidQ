@@ -1,6 +1,6 @@
 # Database Operations Reference Guide
 
-Complete guide for all database operations available in the Intrepidq Equity Analysis system.
+Complete guide for all database operations available in the FIntrepidQ Equity Analysis system.
 
 ---
 
@@ -347,7 +347,7 @@ await save_analysis_to_memory(
 
 ## Database Location
 
-**Path:** `c:\SmartQ\Intrepidq_equity\equity_ai.db`
+**Path:** `c:\SmartQ\FIntrepidQ\equity_ai.db`
 
 To backup database:
 ```bash

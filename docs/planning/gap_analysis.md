@@ -1,7 +1,7 @@
 # Gap Analysis: Stock Analysis Features - UPDATED
 
 ## Executive Summary
-The **IntrepidQ Equity v3.0 (Multi-Agent)** system now provides **comprehensive institutional-grade equity analysis** with a 4-agent pipeline. The system has been upgraded from snapshot analysis to a **full-featured multi-agent architecture** that includes historical tracking, technical analysis, validation, and timeline-aware reporting.
+The **FIntrepidQ Equity v3.0 (Multi-Agent)** system now provides **comprehensive institutional-grade equity analysis** with a 4-agent pipeline. The system has been upgraded from snapshot analysis to a **full-featured multi-agent architecture** that includes historical tracking, technical analysis, validation, and timeline-aware reporting.
 
 **Current Coverage**: ~97% of professional equity analysis requirements ✅
 

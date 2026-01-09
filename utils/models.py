@@ -1,5 +1,5 @@
 """
-Pydantic Models for IntrepidQ Equity Analysis.
+Pydantic Models for FIntrepidQ Equity Analysis.
 Provides type-safe data structures for financial data, technicals, and risk metrics.
 """
 

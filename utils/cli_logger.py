@@ -1,5 +1,5 @@
 """
-IntrepidQ CLI Logger
+FIntrepidQ CLI Logger
 Provides Rich-formatted logging with clean, professional CLI interface.
 Features: Status spinners, live progress tables, timing metrics.
 """
@@ -101,7 +101,7 @@ class PhaseTracker:
     def build_progress_table(self) -> Table:
         """Build the progress tracking table."""
         table = Table(
-            title=f"[bold]IntrepidQ Analysis: {self.ticker}[/bold]",
+            title=f"[bold]FIntrepidQ Analysis: {self.ticker}[/bold]",
             box=ROUNDED,
             show_header=True,
             header_style="bold cyan",
@@ -126,7 +126,7 @@ class PhaseTracker:
 
 class IntrepidQLogger:
     """
-    Manages structured logging for the IntrepidQ application.
+    Manages structured logging for the FIntrepidQ application.
     Features clean progress visualization with spinners and live tables.
     """
     
@@ -140,7 +140,7 @@ class IntrepidQLogger:
     def print_header(self):
         """Print the application header."""
         self.console.print(Panel(
-            Text("Welcome to IntrepidQ", justify="center", style="bold white"),
+            Text("Welcome to FIntrepidQ", justify="center", style="bold white"),
             box=DOUBLE,
             style="cyan",
             width=100

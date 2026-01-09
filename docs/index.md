@@ -1,6 +1,6 @@
 # Documentation Index
 
-Welcome to the IntrepidQ Equity Analysis documentation. This multi-agent system provides comprehensive, time-stamped equity research reports.
+Welcome to the FIntrepidQ Equity Analysis documentation. This multi-agent system provides comprehensive, time-stamped equity research reports.
 
 ## 📚 Documentation Files
 

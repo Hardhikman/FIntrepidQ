@@ -33,3 +33,5 @@ rust_finance/target/
 rust_finance/Cargo.lock
 *.pyd
 *.so
+
+docs/

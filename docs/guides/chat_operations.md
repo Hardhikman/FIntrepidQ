@@ -1,6 +1,6 @@
 # Chat Operations Reference Guide
 
-Guide for using the Intrepidq Equity Analysis interactive chat interface.
+Guide for using the FIntrepidQ Equity Analysis interactive chat interface.
 
 ---
 

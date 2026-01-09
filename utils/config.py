@@ -1,5 +1,5 @@
 """
-Configuration for IntrepidQ Equity Analysis System.
+Configuration for FIntrepidQ Equity Analysis System.
 Centralized configuration for LLM, API keys, and system settings.
 """
 
@@ -48,7 +48,7 @@ ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 # APPLICATION SETTINGS
 
 DEFAULT_USER_ID = os.getenv("DEFAULT_USER_ID", "default_analyst")
-APP_NAME = os.getenv("APP_NAME", "intrepidq_equity_deep_agent")
+APP_NAME = os.getenv("APP_NAME", "fintrepidq_equity_deep_agent")
 
 # Database Retention Policy
 DB_RETENTION = {

@@ -1,5 +1,5 @@
 //! Rust Finance Library
-//! High-performance financial calculations for IntrepidQ
+//! High-performance financial calculations for FIntrepidQ
 //!
 //! Modules:
 //! - risk: VaR, Sharpe, Volatility, Max Drawdown, Beta

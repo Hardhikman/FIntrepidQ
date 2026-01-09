@@ -1,6 +1,6 @@
 # Multi-Agent System Architecture
 
-The IntrepidQ Equity Analysis system uses a **4-agent pipeline** orchestrated by LangGraph.
+The FIntrepidQ Equity Analysis system uses a **4-agent pipeline** orchestrated by LangGraph.
 
 ## Agent Pipeline
 ```
@@ -51,7 +51,7 @@ The IntrepidQ Equity Analysis system uses a **4-agent pipeline** orchestrated by
 ## File Structure
 
 ```
-intrepidq_equity/
+fintrepidq_equity/
 ├── agents/
 │   ├── graph.py           # LangGraph workflow (4 agents + abort logic)
 │   ├── data_agent.py      # Data collection

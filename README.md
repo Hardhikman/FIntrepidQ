@@ -1,4 +1,4 @@
-# IntrepidQ Equity Analysis
+# FIntrepidQ Equity Analysis
 
 AI-powered multi-agent stock analysis system with institutional-grade equity research reports.
 
@@ -78,7 +78,7 @@ Data Collection → Validation → Analysis → Synthesis
 ## 📁 Project Structure
 
 ```
-Intrepidq_equity/
+FIntrepidQ/
 ├── agents/           # 4 agents + chat + graph
 ├── tools/            # Financial & news tools
 ├── context_engineering/
