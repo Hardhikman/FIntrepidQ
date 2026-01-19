@@ -1,37 +1,62 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+venv/
+env/
+dist/
+build/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# Virtual Environment
-venv/
-env/
-
-# Environment Variables
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Databases
+equity_ai.db
+*.sqlite
+fintrepidq-ts/equity_ai.db
+
+# Logs & Debug
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+build_error.txt
+build_log.txt
+
+# OS
+.DS_Store
+Thumbs.db
 
 # IDEs
 .vscode/
 .idea/
 
-# Project Specific
-reports/
-equity_ai.db
-*.log
-logs/
-*.txt
-#docs/
-
-# Debug and testing
-debug_validation.py
-test_tools.py
-test_validation.py
-verify_data.py
-
 # Rust
 rust_finance/target/
 rust_finance/Cargo.lock
 *.pyd
-*.so
 
+# Project Specific
 docs/
+reports/
+!reports/.keep
+verify_data.py
+debug_validation.py
+test_tools.py
+test_validation.py
+update.txt

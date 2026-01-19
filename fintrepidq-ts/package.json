@@ -1,0 +1,45 @@
+{
+  "name": "fintrepidq-ts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@langchain/community": "^1.1.4",
+    "@langchain/core": "^1.1.15",
+    "@langchain/google-genai": "^2.1.10",
+    "@langchain/langgraph": "^1.0.15",
+    "@tailwindcss/typography": "^0.5.19",
+    "better-sqlite3": "^12.6.0",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.1",
+    "google-news-url-decoder": "^1.1.1",
+    "lucide-react": "^0.562.0",
+    "next": "16.1.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "rss-parser": "^3.13.0",
+    "tailwind-merge": "^3.4.0",
+    "technicalindicators": "^3.1.0",
+    "yahoo-finance2": "^3.11.2",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.8",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
