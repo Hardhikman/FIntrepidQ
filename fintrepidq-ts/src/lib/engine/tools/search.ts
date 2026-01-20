@@ -93,16 +93,14 @@ async function searchYahooTicker(query: string): Promise<string | null> {
 export async function resolveTicker(query: string): Promise<string> {
     const cleanQuery = query.trim();
 
-    // Basic ticker check (2-5 uppercase chars) - likely already a US ticker
-    if (/^[A-Z]{2,5}$/.test(cleanQuery)) {
-        return cleanQuery;
-    }
-
     // Check if it's already an international ticker format (e.g., 005930.KS)
+    // These are unambiguous, so we can return them directly.
     if (/^[0-9A-Z]+\.[A-Z]{1,3}$/.test(cleanQuery.toUpperCase())) {
         return cleanQuery.toUpperCase();
     }
 
+    // Always search Yahoo Finance to find the correct primary exchange.
+    // This handles ambiguous tickers like "BYD" (Boyd Gaming vs BYD Co Ltd).
     console.log(`🔍 Resolving ticker for '${query}'...`);
 
     // Try Yahoo Finance search first (best for finding primary exchange)

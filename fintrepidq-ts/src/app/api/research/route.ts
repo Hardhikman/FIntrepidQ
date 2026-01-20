@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
             const resolvedTicker = await TOOLS.resolveTicker(tickers[0]);
 
             const encoder = new TextEncoder();
+            const abortSignal = req.signal;
             const stream = new ReadableStream({
                 async start(controller) {
                     try {
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
                         const analysisStream = streamAnalysis(resolvedTicker, apiKey, alphaVantageKey, threadId);
 
                         for await (const chunk of analysisStream) {
+                            // Stop streaming if client disconnected
+                            if (abortSignal.aborted) {
+                                console.log("[API] Client disconnected, stopping stream.");
+                                break;
+                            }
                             try {
                                 const flatChunk = Object.values(chunk)[0] || {};
                                 const sanitized = sanitizeForJson(flatChunk);
@@ -72,8 +78,13 @@ export async function POST(req: NextRequest) {
                         }
                         controller.close();
                     } catch (error) {
-                        console.error("[API] Stream error:", error);
-                        controller.error(error);
+                        // Ignore abort errors, they are expected on client disconnect
+                        if (error instanceof Error && error.name === 'AbortError') {
+                            console.log("[API] Stream aborted by client.");
+                        } else {
+                            console.error("[API] Stream error:", error);
+                            controller.error(error);
+                        }
                     }
                 },
             });
