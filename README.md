@@ -21,7 +21,7 @@ python chat.py start
 
 ---
 
-## 🏦 Hedge Fund Signal Categories (v4.3)
+## 🏦 Hedge Fund Signal Categories
 
 Reports are organized into **7 professional categories**:
 
