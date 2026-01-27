@@ -92,17 +92,6 @@ FIntrepidQ/
 
 ---
 
-## 📝 Version History
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| **v4.3** | Jan 2026 | 7 hedge fund signal categories |
-| v4.2 | Dec 2025 | Documentation update |
-| v4.1 | Dec 2025 | ICR, ROCE, FCF trends |
-| v4.0 | Dec 2024 | Production hardening |
-
----
-
 ## ⚙️ Configuration
 
 Edit `utils/config.py`:
