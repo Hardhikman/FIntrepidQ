@@ -952,9 +952,23 @@ def resolve_ticker(query: str) -> str:
             
             # Let's try a direct search for the symbol
             for word in text.split():
-                # Strip punctuation including colons
+                # Strip punctuation including colons from the edges
                 clean_word = word.strip('()[]{},.:;')
                 
+                # Handle EXCHANGE:TICKER format (e.g., NYSE:MRV)
+                if ':' in clean_word:
+                    parts = clean_word.split(':')
+                    # If it's EXCHANGE:TICKER, use the ticker part
+                    if len(parts) == 2 and parts[1]:
+                        # Check if the ticker part is valid
+                        ticker_part = parts[1].strip('()[]{},.:;')
+                        if ticker_part.isupper() and 2 <= len(ticker_part) <= 12:
+                            # If the first part is an exchange to ignore, definitely use the second part
+                            if parts[0] in ignore_words:
+                                return ticker_part
+                            # Otherwise, use ticker_part if it's longer/better than nothing
+                            clean_word = ticker_part
+
                 if (clean_word.isupper() and 
                     2 <= len(clean_word) <= 12 and 
                     clean_word not in ignore_words and
