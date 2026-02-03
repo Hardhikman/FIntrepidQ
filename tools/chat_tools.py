@@ -11,6 +11,8 @@ from context_engineering.memory import (
     DB_PATH
 )
 import sqlite3
+import json
+from tools.definitions import _get_competitors, _get_sector_metrics, _load_skill
 
 def _get_all_analyzed_tickers() -> str:
     """
@@ -138,10 +140,65 @@ search_reports_tool = StructuredTool.from_function(
     func=_search_reports_by_keyword,
 )
 
+def _perform_sector_comparison(ticker: str) -> str:
+    """
+    Orchestrate a full sector comparison for a ticker.
+    """
+    ticker = ticker.upper().strip()
+    
+    # 1. Find Competitors
+    comp_res = _get_competitors(ticker)
+    if comp_res["status"] == "error":
+        return f"Error finding competitors: {comp_res['error_message']}"
+    
+    comp_data = comp_res["data"]
+    competitors = comp_data["competitors"]
+    
+    if not competitors:
+        return f"Could not identify any direct competitors for {ticker} ({comp_data['company_name']})."
+    
+    # 2. Get Metrics for all (Target + Competitors)
+    tickers_to_fetch = [ticker] + competitors
+    metrics_res = _get_sector_metrics(tickers_to_fetch)
+    
+    if metrics_res["status"] == "error":
+        return f"Error fetching sector metrics: {metrics_res['error_message']}"
+    
+    # 3. Load Interpretation Skill
+    skill_content = _load_skill("sector_comparison")
+    
+    # 4. Final Output Construction
+    # We return the data as a structured block for the LLM to interpret using the skill
+    data_str = json.dumps(metrics_res["data"], indent=2)
+    
+    output = f"""### SECTOR COMPARISON DATA: {ticker} vs Peers
+
+I have identified the following peers for {ticker}: {', '.join(competitors)}
+
+**Comparison Data:**
+```json
+{data_str}
+```
+
+**Skill Instructions:**
+{skill_content}
+
+**Task:**
+Please use the provided comparison data and sector comparison skill to generate a benchmark report. highlight where {ticker} is stronger or weaker than its peers.
+"""
+    return output
+
+perform_sector_comparison_tool = StructuredTool.from_function(
+    name="perform_sector_comparison",
+    description="Automatically compare a stock ticker against its sector peers and generate a benchmark report.",
+    func=_perform_sector_comparison,
+)
+
 # Export all tools
 CHAT_TOOLS = [
     get_all_analyzed_tickers_tool,
     get_ticker_report_tool,
     compare_tickers_tool,
-    search_reports_tool
+    search_reports_tool,
+    perform_sector_comparison_tool
 ]

@@ -981,3 +981,173 @@ def resolve_ticker(query: str) -> str:
     return query.upper()
 
 
+# SECTOR COMPARISON TOOLS
+
+def _get_competitors(ticker: str) -> Dict[str, Any]:
+    """
+    Find top competitors for a given stock ticker using web search.
+    """
+    ticker = ticker.upper().strip()
+    print(f" 🔍 Finding competitors for {ticker}...")
+    
+    # First, get company name if possible to make search more accurate
+    company_name = ticker
+    try:
+        stock = yf.Ticker(ticker)
+        company_name = stock.info.get("longName", ticker)
+    except:
+        pass
+
+    query = f"top direct competitors of {company_name} {ticker} stock peer group"
+    search_results = _search_web(query)
+    
+    competitors = []
+    # If search fails, provide a fallback or error
+    if not search_results or "error" in search_results[0]:
+        return {
+            "status": "error",
+            "error_message": f"Could not find competitors for {ticker}: {search_results[0].get('error') if search_results else 'No results'}"
+        }
+
+    # Extract potential tickers from search results
+    # Look for patterns like (TICKER) or capitalized 2-5 letter words
+    all_text = " ".join([r.get("title", "") + " " + r.get("snippet", "") for r in search_results])
+    
+    # regex for tickers in parentheses (MSFT), (GOOGL), etc.
+    found_tickers = re.findall(r'\(?([A-Z]{2,5})\)?', all_text)
+    
+    # Filter and deduplicate
+    seen = {ticker} # Don't include the target itself
+    for t in found_tickers:
+        if t not in seen and len(t) >= 2:
+            competitors.append(t)
+            seen.add(t)
+            if len(competitors) >= 5:
+                break
+    
+    # If we didn't find enough, try another search for industry peers
+    if len(competitors) < 3:
+        try:
+            industry = stock.info.get("industry", "")
+            if industry:
+                industry_query = f"top stocks in {industry} industry"
+                industry_results = _search_web(industry_query)
+                industry_text = " ".join([r.get("title", "") + " " + r.get("snippet", "") for r in industry_results])
+                more_tickers = re.findall(r'\(?([A-Z]{2,5})\)?', industry_text)
+                for t in more_tickers:
+                    if t not in seen and len(t) >= 2:
+                        competitors.append(t)
+                        seen.add(t)
+                        if len(competitors) >= 5:
+                            break
+        except:
+            pass
+
+    return {
+        "status": "success",
+        "data": {
+            "ticker": ticker,
+            "company_name": company_name,
+            "competitors": competitors
+        }
+    }
+
+
+def _get_sector_metrics(tickers: List[str]) -> Dict[str, Any]:
+    """
+    Fetch and compare metrics for a list of tickers.
+    """
+    results = []
+    target_ticker = tickers[0]
+    
+    print(f" 📊 Benchmarking {target_ticker} against {len(tickers)-1} peers...")
+    
+    for t in tickers:
+        # Check cache/DB logic could go here
+        # For now, use _get_deep_financials (which has its own 1hr cache)
+        data_res = _get_deep_financials(t)
+        if data_res["status"] == "success":
+            d = data_res["data"]
+            
+            # Fetch strategic headlines (Earnings, M&A, Guidance) for high-impact benchmarking
+            # Using a boolean OR query is much faster than many individual queries
+            strategic_query = f"{t} (earnings OR acquisition OR merger OR guidance OR investigation)"
+            news = _search_google_news(strategic_query, max_results=3)
+            
+            # Add news to the full quantitative dataset
+            d["news"] = news
+            results.append(d)
+    
+    if not results:
+        return {"status": "error", "error_message": "Could not fetch data for any tickers."}
+        
+    # Calculate averages (excluding None values)
+    def calc_avg(key, parent=None):
+        if parent:
+            vals = [r.get(parent, {}).get(key) for r in results if r.get(parent, {}).get(key) is not None]
+        else:
+            vals = [r.get(key) for r in results if r.get(key) is not None]
+        return sum(vals) / len(vals) if vals else None
+
+    averages = {
+        # Fundamental
+        "revenue_growth": calc_avg("revenue_growth"),
+        "profit_margins": calc_avg("profit_margins"),
+        "roe": calc_avg("return_on_equity"),
+        "roce": calc_avg("return_on_capital_employed"),
+        "free_cash_flow": calc_avg("free_cash_flow"),
+        "operating_cashflow": calc_avg("operating_cashflow"),
+        
+        # Valuation
+        "pe_ratio": calc_avg("trailing_pe"),
+        "forward_pe": calc_avg("forward_pe"),
+        "peg_ratio": calc_avg("peg_ratio"),
+        "price_to_book": calc_avg("price_to_book"),
+        
+        # Quality
+        "debt_to_equity": calc_avg("debt_to_equity"),
+        "icr_value": calc_avg("icr_value", "icr_analysis"),
+        
+        # Momentum
+        "rsi": calc_avg("rsi", "technicals"),
+        "sma_50": calc_avg("sma_50", "technicals"),
+        "sma_200": calc_avg("sma_200", "technicals"),
+        "sma_200_weeks": calc_avg("sma_200_weeks", "technicals"),
+        "macd": calc_avg("macd", "technicals"),
+        "macd_signal": calc_avg("macd_signal", "technicals"),
+        
+        # Risk
+        "volatility": calc_avg("volatility_annualized", "risk_metrics"),
+        "sharpe_ratio": calc_avg("sharpe_ratio", "risk_metrics"),
+        "beta": calc_avg("beta"), # Beta is top-level in financial_data
+        "max_drawdown": calc_avg("max_drawdown", "risk_metrics"),
+        "var_95": calc_avg("value_at_risk_95", "risk_metrics"),
+        
+        # Dividend
+        "dividend_yield": calc_avg("dividend_yield"),
+        "payout_ratio": calc_avg("payout_ratio")
+    }
+
+    return {
+        "status": "success",
+        "data": {
+            "target": target_ticker,
+            "results": results,
+            "averages": averages
+        }
+    }
+
+
+get_competitors_tool = StructuredTool.from_function(
+    name="get_competitors",
+    description="Find top direct competitors and sector peers for a stock ticker.",
+    func=_get_competitors,
+)
+
+get_sector_metrics_tool = StructuredTool.from_function(
+    name="get_sector_metrics",
+    description="Fetch and aggregate key financial metrics for a list of tickers to compare them.",
+    func=_get_sector_metrics,
+)
+
+

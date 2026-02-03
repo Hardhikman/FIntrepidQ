@@ -364,10 +364,12 @@ async def run_chat_loop(initial_ticker: str | None = None) -> None:
     console.print(
         Panel.fit(
             "[bold cyan]🤖 FIntrepidQ Equity Chat[/bold cyan]\n\n"
-            "Ask questions about your analyzed stocks.\n"
-            "Type [bold yellow]analyze [ticker][/bold yellow] to start a new analysis.\n"
-            "Type [bold yellow]/help[/bold yellow] for commands, "
-            "[bold yellow]/exit[/bold yellow] to quit.",
+            "Ask questions about your analyzed stocks or use commands:\n"
+            "- [bold yellow]analyze [ticker][/bold yellow]  : Run a full deep-dive analysis\n"
+            "- [bold yellow]/compare [ticker][/bold yellow] : Benchmark against sector peers\n"
+            "- [bold yellow]/tickers[/bold yellow]         : List all analyzed stocks\n"
+            "- [bold yellow]/help[/bold yellow]            : Show all available commands\n"
+            "- [bold yellow]/exit[/bold yellow]            : Exit the chat interface",
             border_style="cyan",
         )
     )
@@ -406,11 +408,22 @@ async def run_chat_loop(initial_ticker: str | None = None) -> None:
                 await run_analysis_workflow(t)
                 continue
                 
+            # Intercept '/compare' command
+            if user_input.lower().startswith("/compare "):
+                parts = user_input.split(maxsplit=1)
+                if len(parts) > 1:
+                    ticker = parts[1].strip().upper()
+                    user_input = f"Compare {ticker} with its sector peers."
+                else:
+                    console.print("[red]Usage: /compare [ticker][/red]")
+                    continue
+                
             if user_input.lower() == "/help":
                 console.print(
                     Panel(
                         "[bold]Commands:[/bold]\n"
                         "- analyze [ticker] : Start full analysis\n"
+                        "- /compare [ticker]: Compare stock with sector peers\n"
                         "- /tickers : List analyzed tickers\n"
                         "- /clear   : Clear conversation history\n"
                         "- /exit    : Exit chat",
