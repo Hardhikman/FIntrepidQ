@@ -77,6 +77,33 @@ Simply run the analysis as before. The new metrics will automatically be calcula
 python chat.py analyze TSLA
 ```
 
+## Sector Comparison Analysis (v5.0)
+
+A new powerful feature that allows you to benchmark a stock against its direct competitors and industry peers using the `/compare` command.
+
+### Key Capabilities
+
+*   **Automated Competitor Discovery**: Uses real-time web search to identify the most relevant direct competitors.
+*   **Sector-Level Benchmarking**: Fetches 100% of the institutional metrics (P/E, ROCE, Beta, etc.) for both the target and its peers.
+*   **Averages Calculation**: Automatically computes industry averages for every metric to identify relative strengths.
+*   **Strategic News Peering**: Pulls high-impact headlines (Earnings, M&A) for all compared stocks to provide market context.
+
+### Usage
+
+1. Start the chat: `python chat.py start`
+2. Run comparison: `/compare TSLA`
+
+### Output Format
+
+The comparison uses the **Sector Comparison Skill** to generate:
+1.  **📊 Sector Benchmark Table**: A 12-column Markdown table showing the target vs. peers vs. industry average.
+2.  **🟢 Target Signal Dashboard**: A high-level snap-analysis of the target across all 7 hedge fund categories.
+3.  **🔍 Institutional Narrative**: Categorized deep-dives into Fundamentals, Valuation, and momentum.
+4.  **📰 LATEST SECTOR NEWS**: A dedicated section for Google News headlines for every stock.
+5.  **💡 THE SECTOR VERDICT**: A data-driven conclusion on the stock's relative attractiveness.
+
+---
+
 ## Addressing "gzip response" Warning
 If you see `gzip response with content-length of 0`, this is a warning from `yfinance` indicating that a specific data point (often for international stocks) was returned empty by Yahoo Finance. The system handles this gracefully and will proceed with the available data.
 

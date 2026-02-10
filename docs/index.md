@@ -13,6 +13,7 @@ Welcome to the FIntrepidQ Equity Analysis documentation. This multi-agent system
 - **[validation_agent.md](reference/validation_agent.md)** - Data quality validation and confidence scoring
 
 ### Features
+- **[Sector Comparison](guides/walkthrough.md#sector-comparison-analysis)** - **NEW:** Peer benchmarking and industry averages
 - **[advanced_metrics.md](reference/advanced_metrics.md)** - Volume trends, ICR, ROCE, VaR, and FCF analysis
 - **[signal_category_schema.md](reference/signal_category_schema.md)** - 7 hedge fund signal categories mapping
 - **[walkthrough.md](guides/walkthrough.md)** - Feature walkthrough and usage examples
@@ -38,7 +39,7 @@ Data Collection → Validation → Analysis → Synthesis → Compact Report
 | Data Collection | Financials (yfinance), News (DDGS, Google RSS) |
 | Validation | Completeness score, Alpha Vantage enrichment |
 | Analysis | Investment thesis, Red/Green flags using 7 hedge fund categories (FUNDAMENTAL, VALUATION, QUALITY, MOMENTUM, RISK, SENTIMENT, DIVIDEND) |
-| Synthesis | Compact report with Key Metrics table (including Payout Ratio) |
+| Synthesis | Compact report with Key Metrics table and **Sector Benchmarks** using the `/compare` command |
 
 ## 🛡️ Production Features
 

@@ -25,7 +25,7 @@ The FIntrepidQ Equity Analysis system uses a **4-agent pipeline** orchestrated b
 ## Agent Responsibilities
 
 1. **Data Collection Agent** (`agents/data_agent.py`)
-   - Tools: `get_deep_financials`, `check_strategic_triggers`, `search_web`, `search_google_news`
+   - Tools: `get_deep_financials`, `check_strategic_triggers`, `search_web`, `search_google_news`, `get_competitors`, `get_sector_metrics`
    - Gathers comprehensive data from multiple sources
    - **Retry logic** with exponential backoff for transient failures
    - **API logging** to `logs/api_calls.log`

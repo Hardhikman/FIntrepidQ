@@ -57,6 +57,11 @@ Data Collection → Validation → Analysis → Synthesis
 
 ## 📊 Features
 
+**Advanced Analysis**
+- **Sector Comparison**: `/compare [ticker]` for peer benchmarking
+- **Competitor Discovery**: Automated web-search based peer identification
+- **Industry Averages**: Comparative analysis vs. sector-level averages
+
 **Quantitative**
 - Fundamentals: P/E, ROE, ROCE, FCF, Margins, Revenue Growth
 - Technicals: RSI, MACD, SMA (50/200), Golden/Death Cross

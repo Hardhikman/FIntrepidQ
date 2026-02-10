@@ -43,54 +43,14 @@ Add charts to visualize financial trends in reports:
 
 
 ### 1. Sector Comparison Analysis
-**Status:** Planned
+**Status:** ✅ Implemented  
 **Goal:** Implement a feature that allows users to compare a specific stock ticker against its direct competitors and sector peers.
 
-#### Implementation Plan
-## Goal Description
-Implement a "Sector Comparison Analysis" feature that allows users to compare a specific stock ticker against its direct competitors and sector peers. This will provide context to the standalone analysis by benchmarking key metrics (PE, Margins, Growth, Volatility) against the industry average.
-
-## User Review Required
-> [!IMPORTANT]
-> This feature relies on web search to dynamically find competitors. The quality of the comparison depends on the accuracy of the search results.
-
-## Proposed Changes
-
-### Tools Layer
-#### [MODIFY] [definitions.py](file:///c:/SmartQ/Intrepidq_equity/tools/definitions.py)
-- Add `get_competitors_tool`:
-    - Input: `ticker`
-    - Logic: Uses `search_web_tool` (or internal logic) to find top 3-5 direct competitors.
-- Add `get_sector_metrics_tool`:
-    - Input: `tickers` (list of strings)
-    - Logic: Fetches `get_deep_financials` for all tickers, calculates averages/medians for key metrics (PE, Revenue Growth, Profit Margins, Volatility), and returns a structured comparison.
-
-#### [MODIFY] [chat_tools.py](file:///c:/SmartQ/Intrepidq_equity/tools/chat_tools.py)
-- Add `perform_sector_comparison_tool`:
-    - Input: `ticker`
-    - Logic: Orchestrates the flow:
-        1. Call `get_competitors(ticker)`.
-        2. Call `get_sector_metrics([ticker] + competitors)`.
-        3. Format a text report highlighting where the target ticker stands (e.g., "Above Average", "Below Average").
-
-### Context Engineering
-#### [NEW] [context_engineering/skills/sector_comparison/SKILL.md](file:///c:/SmartQ/Intrepidq_equity/context_engineering/skills/sector_comparison/SKILL.md)
-- Create a new skill definition that guides the LLM on how to interpret sector data and generate a comparative narrative.
-
-## Verification Plan
-
-### Automated Tests
-- Create `test_sector_comparison.py`:
-    - Test `get_competitors("AAPL")` returns valid tickers (e.g., MSFT, GOOGL).
-    - Test `get_sector_metrics(["AAPL", "MSFT"])` returns a dictionary with calculated averages.
-
-### Manual Verification
-- Run `python chat.py`
-- Command: "Compare AAPL with its sector peers."
-- Verify:
-    - The agent identifies competitors.
-    - The agent fetches data for all of them.
-    - The output includes a comparison table or summary stating how AAPL compares to the average.
+> **✅ IMPLEMENTED:** Added `/compare [ticker]` command and `perform_sector_comparison_tool`.
+> **✅ IMPLEMENTED:** Automated competitor discovery via web search.
+> **✅ IMPLEMENTED:** Comprehensive benchmarking against 7 institutional categories.
+> **✅ IMPLEMENTED:** Sector-level averages for fundamental, technical, and risk metrics.
+> **✅ IMPLEMENTED:** Institutional "Sector Comparison" skill definition.
 
 ### 2. Portfolio Analysis Mode
 **Status:** Planned

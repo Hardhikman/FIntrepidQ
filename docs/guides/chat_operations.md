@@ -92,8 +92,9 @@ Once inside the chat interface, you can use the following slash commands:
 | Command | Description |
 |---------|-------------|
 | `analyze [TICKER]` | **NEW:** Trigger a full autonomous analysis for a stock (e.g., `analyze NVDA`). |
-| `/help` | Show the list of available commands. |
+| `/compare [TICKER]` | **NEW:** Benchmark a stock against its sector peers and industry averages. |
 | `/tickers` | List all tickers that have been analyzed and are available in the database. |
+| `/help` | Show the list of available commands. |
 | `/clear` | Clear the current conversation history (context). |
 | `/exit` or `/quit` | Exit the chat interface. |
 
