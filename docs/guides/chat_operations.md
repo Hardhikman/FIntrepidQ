@@ -132,3 +132,9 @@ Conversation history cleared.
 
 You: Tell me about Microsoft.
 ```
+
+---
+
+## 📱 WhatsApp Interface
+
+The chat engine is fully unified. For details on how to use these commands via WhatsApp, refer to the **[WhatsApp Integration Guide](whatsapp_integration.md)**.

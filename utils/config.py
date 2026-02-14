@@ -56,5 +56,8 @@ DB_RETENTION = {
     "AUTO_CLEANUP_ENABLED": True      # Cleanup after each save
 }
 
+# WhatsApp Configuration
+WHATSAPP_DEFAULT_TO_NUMBER = os.getenv("WHATSAPP_DEFAULT_TO_NUMBER")
+
 # Logging
 VERBOSE = os.getenv("VERBOSE", "false").lower() == "true"

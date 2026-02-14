@@ -18,6 +18,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.pytest_cache/
+.ipynb_checkpoints/
 
 # Environment
 .env
@@ -52,7 +54,7 @@ rust_finance/Cargo.lock
 *.pyd
 
 # Project Specific
-docs/
+# docs/  <--- Documentation should be committed
 reports/
 !reports/.keep
 verify_data.py
@@ -60,3 +62,12 @@ debug_validation.py
 test_tools.py
 test_validation.py
 update.txt
+mudslide_help.txt
+*.tmp
+*.bak
+
+# WhatsApp / Mudslide (Local sessions if any)
+mudslide-data/
+auth_info/
+baileys-auth/
+.mudslide/

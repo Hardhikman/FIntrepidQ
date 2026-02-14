@@ -23,6 +23,8 @@ from context_engineering.prompts import chat_agent_prompt
 setup_logging(verbose=config.VERBOSE)
 
 app = typer.Typer()
+whatsapp_app = typer.Typer()
+app.add_typer(whatsapp_app, name="whatsapp", help="WhatsApp integration commands")
 console = Console(width=100)
 
 @app.callback()
@@ -97,14 +99,35 @@ def _clean_text(text: str) -> str:
     return text
 
 
-def _format_report(text: str, ticker: str) -> str:
-    """Format the report with proper structure and headers."""
-    # Add header if not present
-    if not text.startswith('#') and ticker.upper() not in text[:100]:
-        header = f"# {ticker} - Equity Analysis Report\n\n"
-        text = header + text
+def _format_report(text: str, ticker: str):
+    # Format the report with proper structure and headers.
+    return f"# {ticker} - Equity Analysis Report\n\n{text}"
+
+def _extract_whatsapp_summary(text: str):
+    """
+    Extract Executive Summary and Investment Thesis from the full report for WhatsApp.
+    """
+    sections = []
     
-    return text
+    # Try to find Executive Summary (flexible matching for emojis/extra text)
+    exec_match = re.search(r"## .*?Executive Summary(.*?)(?=\n##|---|$)", text, re.DOTALL | re.IGNORECASE)
+    if not exec_match:
+        # Fallback to direct match
+        exec_match = re.search(r"## Executive Summary(.*?)(?=\n##|---|$)", text, re.DOTALL | re.IGNORECASE)
+        
+    if exec_match:
+        sections.append(f"*Executive Summary*\n{exec_match.group(1).strip()}")
+    
+    # Try to find Investment Thesis (flexible matching)
+    thesis_match = re.search(r"## .*?Investment Thesis(.*?)(?=\n##|---|$)", text, re.DOTALL | re.IGNORECASE)
+    if thesis_match:
+        sections.append(f"*Investment Thesis*\n{thesis_match.group(1).strip()}")
+        
+    if not sections:
+        # Fallback if parsing fails - return first 1500 chars clean
+        return text[:1500].strip() + "\n\n...(Full report available in memory)"
+        
+    return "\n\n" + "\n\n".join(sections)
 
 
 def _save_report_to_file(text: str, ticker: str, session_id: str) -> Path:
@@ -146,15 +169,152 @@ def _history_to_messages(history: list[dict]) -> list:
             msgs.append(AIMessage(content=entry["content"]))
     return msgs
 
-def _extract_response_content(content: str | list) -> str:
-    """Extract text content from potential list structure."""
-    if isinstance(content, list):
-        text_parts = []
-        for item in content:
-            if isinstance(item, dict) and "text" in item:
-                text_parts.append(item["text"])
-        return "".join(text_parts)
     return str(content)
+
+async def handle_chat_message(user_input: str, history: list, agent, interface: str = "cli", sender_id: str = None, send_func=None):
+    """
+    Unified handler for chat input from both CLI and WhatsApp.
+    Processes commands and AI chat, maintaining consistency.
+    """
+    from langchain_core.messages import HumanMessage, AIMessage
+    user_input = user_input.strip()
+    if not user_input:
+        return None, True
+
+    content_lower = user_input.lower()
+    
+    # 1. Handle Commands
+    
+    # EXIT
+    if content_lower in ["/exit", "/quit", "exit", "quit"]:
+        if interface == "cli":
+            console.print("[yellow]Goodbye![/yellow]")
+            return None, False
+        return "🤖 Goodbye!", True
+
+    # CLEAR
+    if content_lower == "/clear":
+        history.clear()
+        history.append(SystemMessage(content=chat_agent_prompt))
+        msg = "[yellow]Conversation history cleared.[/yellow]" if interface == "cli" else "🤖 Conversation history cleared."
+        return msg, True
+
+    # TICKERS
+    if content_lower == "/tickers":
+        # Pass a specific prompt to the agent to list tickers
+        user_input = "List all analyzed tickers."
+    
+    # HELP
+    if content_lower == "/help":
+        help_text = (
+            "*Commands:*\n"
+            "- analyze [ticker] : Start full analysis\n"
+            "- /compare [ticker]: Compare stock with sector peers\n"
+            "- /tickers : List analyzed tickers\n"
+            "- /help : Show this message\n"
+            "- /clear : Clear history\n"
+            "- /exit : Exit chat"
+        )
+        if interface == "cli":
+            console.print(Panel(help_text.replace("*", ""), title="Help"))
+            return None, True
+        return f"🤖 {help_text}", True
+
+    # ANALYZE
+    if content_lower.startswith("analyze "):
+        ticker_input = user_input.split(None, 1)[1].strip()
+        
+        # Resolve ticker for consistent graph execution
+        try:
+            ticker = resolve_ticker(ticker_input)
+            ticker = validate_ticker(ticker)
+        except Exception as e:
+            msg = f"❌ Invalid ticker '{ticker_input}': {e}"
+            return f"🤖 {msg}" if interface == "whatsapp" else f"[red]{msg}[/red]", True
+
+        if interface == "whatsapp":
+            if send_func:
+                send_func(sender_id, f"🤖 Starting full analysis for {ticker}... This may take 1-2 minutes.")
+            
+            # Run analysis pipeline (non-interactive)
+            try:
+                from agents.graph import build_graph
+                import uuid as _uuid
+                
+                app_graph = build_graph()
+                graph_config = {"configurable": {"thread_id": str(_uuid.uuid4())}}
+                
+                # Stream through the graph
+                async for ev in app_graph.astream({"ticker": ticker}, graph_config, stream_mode="values"):
+                    pass
+                
+                snapshot = app_graph.get_state(graph_config)
+                if snapshot.next:
+                    # Auto-resolve conflicts
+                    app_graph.update_state(graph_config, {"conflicts": []})
+                    async for ev in app_graph.astream(None, graph_config, stream_mode="values"):
+                        pass
+                    snapshot = app_graph.get_state(graph_config)
+                
+                current_state = snapshot.values
+                if current_state and "final_report" in current_state:
+                    report_text = _format_report(current_state["final_report"], ticker)
+                    session_id = f"analysis_{ticker}_{_uuid.uuid4().hex[:6]}"
+                    await memory.save_analysis_to_memory(
+                        session_id=session_id,
+                        user_id=config.DEFAULT_USER_ID,
+                        ticker=ticker,
+                        report=report_text,
+                    )
+                    return f"🤖 📊 *{ticker} Analysis Report Summary*\n{_extract_whatsapp_summary(report_text)}", True
+                else:
+                    return f"🤖 ❌ Analysis for {ticker} failed.", True
+            except Exception as e:
+                return f"🤖 ❌ Analysis error: {str(e)[:100]}", True
+        else:
+            # CLI behavior (interactive)
+            await run_analysis_workflow(ticker)
+            return None, True
+
+    # COMPARE
+    if content_lower.startswith("/compare "):
+        parts = user_input.split(maxsplit=1)
+        if len(parts) > 1:
+            ticker = parts[1].strip().upper()
+            user_input = f"Compare {ticker} with its sector peers."
+        else:
+            msg = "Usage: /compare [ticker]"
+            return f"🤖 {msg}" if interface == "whatsapp" else f"[red]{msg}[/red]", True
+
+    # WHATSAPP LOGIN (CLI only)
+    if interface == "cli" and content_lower == "/whatsapp login":
+        from tools.whatsapp_client import WhatsAppClient
+        WhatsAppClient().login()
+        return None, True
+
+    # 2. AI Chat Processing
+    history.append(HumanMessage(content=user_input))
+    
+    try:
+        if interface == "cli":
+            with console.status("[bold green]Thinking...[/bold green]"):
+                result = await agent.ainvoke({"messages": history})
+        else:
+            result = await agent.ainvoke({"messages": history})
+            
+        response = _extract_response_content(result["messages"][-1].content)
+        history.append(AIMessage(content=response))
+        
+        if interface == "cli":
+            console.print("\n[bold blue]AI:[/bold blue]")
+            console.print(Markdown(response))
+            return None, True
+        else:
+            return f"🤖 {response}", True
+            
+    except Exception as e:
+        msg = f"Error: {e}"
+        return f"🤖 {msg}" if interface == "whatsapp" else f"[red]{msg}[/red]", True
 
 async def run_analysis_workflow(ticker: str, user_id: str = None, save_file: bool = True, auto_save: bool = False):
     """
@@ -392,66 +552,137 @@ async def run_chat_loop(initial_ticker: str | None = None) -> None:
 
     while True:
         try:
+            from rich.prompt import Prompt
             user_input = Prompt.ask("\n[bold green]You[/bold green]")
-            user_input = user_input.strip()
-            if not user_input:
-                continue
             
-            # Commands
-            if user_input.lower() in ["/exit", "/quit", "exit", "quit"]:
-                console.print("[yellow]Goodbye![/yellow]")
+            response, should_continue = await handle_chat_message(
+                user_input, 
+                _history_to_messages(chat_history) if not chat_history else chat_history, 
+                agent, 
+                interface="cli"
+            )
+            
+            if response:
+                console.print(response)
+            
+            if not should_continue:
                 break
-            
-            # Intercept 'analyze' command
-            if user_input.lower().startswith("analyze "):
-                _, t = user_input.split(maxsplit=1)
-                await run_analysis_workflow(t)
-                continue
                 
-            # Intercept '/compare' command
-            if user_input.lower().startswith("/compare "):
-                parts = user_input.split(maxsplit=1)
-                if len(parts) > 1:
-                    ticker = parts[1].strip().upper()
-                    user_input = f"Compare {ticker} with its sector peers."
-                else:
-                    console.print("[red]Usage: /compare [ticker][/red]")
-                    continue
+            # Note: We need to maintain the LangChain message objects in history now
+            # since the unified handler appends to it.
+            if not chat_history:
+                # Initialize history if empty
+                chat_history = [SystemMessage(content=chat_agent_prompt)]
                 
-            if user_input.lower() == "/help":
-                console.print(
-                    Panel(
-                        "[bold]Commands:[/bold]\n"
-                        "- analyze [ticker] : Start full analysis\n"
-                        "- /compare [ticker]: Compare stock with sector peers\n"
-                        "- /tickers : List analyzed tickers\n"
-                        "- /clear   : Clear conversation history\n"
-                        "- /exit    : Exit chat",
-                        title="Help",
-                    )
-                )
-                continue
-            if user_input.lower() == "/tickers":
-                user_input = "List all analyzed tickers."
-            if user_input.lower() == "/clear":
-                chat_history = []
-                console.print("[yellow]Conversation history cleared.[/yellow]")
-                continue
-                
-            # Add user message
-            chat_history.append({"role": "user", "content": user_input})
-            with console.status("[bold green]Thinking...[/bold green]"):
-                msgs = _history_to_messages(chat_history)
-                result = await agent.ainvoke({"messages": msgs})
-                response = _extract_response_content(result["messages"][-1].content)
-            chat_history.append({"role": "assistant", "content": response})
-            console.print("\n[bold blue]AI:[/bold blue]")
-            console.print(Markdown(response))
         except KeyboardInterrupt:
             console.print("\n[yellow]Goodbye![/yellow]")
             break
         except Exception as e:
             console.print(f"\n[red]Error: {e}[/red]")
+
+@whatsapp_app.command("login")
+def whatsapp_login():
+    """Login to WhatsApp by scanning a QR code."""
+    from tools.whatsapp_client import WhatsAppClient
+    client = WhatsAppClient()
+    client.login()
+
+@whatsapp_app.command("send")
+def whatsapp_send(
+    message: str = typer.Argument(..., help="Message content"),
+    phone: str = typer.Option(None, help="Phone number with country code (e.g., 919876543210). Defaults to env var.")
+):
+    """Send a WhatsApp message."""
+    from tools.whatsapp_client import WhatsAppClient
+    
+    target_phone = phone or config.WHATSAPP_DEFAULT_TO_NUMBER
+    
+    if not target_phone:
+        console.print("[red]Error: Phone number is required. Provide it as an argument or set WHATSAPP_DEFAULT_TO_NUMBER in .env[/red]")
+        raise typer.Exit(code=1)
+        
+    client = WhatsAppClient()
+    if client.send_message(target_phone, message):
+        console.print(f"[green]Message sent to {target_phone}![/green]")
+    else:
+        console.print(f"[red]Failed to send message to {target_phone}.[/red]")
+
+@whatsapp_app.command("run-bot")
+def whatsapp_run_bot():
+    """
+    Run the WhatsApp bot listener.
+    Listens for incoming messages and replies using the AI agent.
+    """
+    from tools.whatsapp_client import WhatsAppClient
+    from agents.chat_agent import build_chat_agent
+    from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+    from context_engineering.prompts import chat_agent_prompt
+    import asyncio
+
+    console.print(Panel.fit("[bold green]WhatsApp Bot Listener Running...[/bold green]\nWaiting for messages...", border_style="green"))
+    
+    client = WhatsAppClient()
+    agent = build_chat_agent()
+
+    # We need a way to manage conversation history per user (phone number)
+    # For simplicity in this CLI version, we'll keep a simple in-memory dict
+    # format: {phone_number: [message_history]}
+    conversations = {}
+    
+    # Store the sender function from the listener
+    whatsapp_send_func = None
+    
+    def set_send_func(func):
+        nonlocal whatsapp_send_func
+        whatsapp_send_func = func
+
+    try:
+        for event in client.listen_for_messages(provide_input_channel=set_send_func):
+            if event.get("type") == "message":
+                sender = event.get("sender")
+                content = event.get("content")
+                
+                console.print(f"\n[blue]📩 Received from {sender}:[/blue] {content}")
+                
+                if sender not in conversations:
+                    conversations[sender] = [SystemMessage(content=chat_agent_prompt)]
+                
+                history = conversations[sender]
+                
+                async def process_and_reply():
+                    response, _ = await handle_chat_message(
+                        content, 
+                        history, 
+                        agent, 
+                        interface="whatsapp", 
+                        sender_id=sender,
+                        send_func=whatsapp_send_func
+                    )
+                    if response and whatsapp_send_func:
+                        console.print(f"[green]📤 Replying to {sender}:[/green] {response[:50]}...")
+                        whatsapp_send_func(sender, response)
+
+                asyncio.run(process_and_reply())
+                
+            elif event.get("type") == "system":
+                content = event.get("content")
+                if content == "READY":
+                    console.print("[bold green]✅ WhatsApp Bot CONNECTED and Ready![/bold green]")
+                elif content == "HEARTBEAT":
+                    # Periodic log to show listener is still alive
+                    console.print("[dim]💓 Heartbeat received from listener...[/dim]")
+                
+            elif event.get("type") == "unknown":
+                console.print(f"[dim]Unknown event: {event.get('raw')}[/dim]")
+                
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Bot stopped by user.[/yellow]")
+    except Exception as e:
+        import traceback
+        console.print(f"\n[red]Fatal bot error: {e}[/red]")
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
+    finally:
+        console.print("[bold red]Bot shutdown complete.[/bold red]")
 
 @app.command()
 def start(ticker: str = typer.Argument(None)):

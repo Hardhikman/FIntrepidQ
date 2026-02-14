@@ -80,7 +80,10 @@ fintrepidq_equity/
 │   ├── analysis.log
 │   ├── api_calls.log
 │   └── errors.log
-└── chat.py                # Main CLI entry point
+├── chat.py                # Main CLI entry point
+├── mudslide/              # (Internal) Mudslide authentication data
+└── tools/
+    └── whatsapp_listener.js # Node.js background listener
 ```
 
 ## Production Features
@@ -92,6 +95,9 @@ fintrepidq_equity/
 | **Structured Logging** | JSON logs with rotation in `utils/cli_logger.py` |
 | **Error Handling** | Try/except in all graph nodes with graceful degradation |
 | **Workflow Abort** | Critical failures (API quota) stop workflow immediately |
+| **Mobile Integration**| Bidirectional WhatsApp bot with Node.js/Baileys implementation |
+| **JSON_SEND Protocol**| Architecture to prevent multiline message truncation over stdin |
+| **Heartbeat Telemetry**| Background heartbeat (5s) for pipe health monitoring |
 
 ## CLI Logging (`utils/cli_logger.py`)
 

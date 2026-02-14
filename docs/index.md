@@ -20,6 +20,7 @@ Welcome to the FIntrepidQ Equity Analysis documentation. This multi-agent system
 
 ### Operations
 - **[chat_operations.md](guides/chat_operations.md)** - Interactive chat guide
+- **[WhatsApp Integration](guides/whatsapp_integration.md)** - **NEW:** Bot mode, mobile analysis, and setup
 - **[database_operations.md](guides/database_operations.md)** - Database management guide
 
 ### Technical
