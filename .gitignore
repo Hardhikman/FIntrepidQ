@@ -54,7 +54,7 @@ rust_finance/Cargo.lock
 *.pyd
 
 # Project Specific
-# docs/  <--- Documentation should be committed
+docs/  <--- Documentation should be committed
 reports/
 !reports/.keep
 verify_data.py

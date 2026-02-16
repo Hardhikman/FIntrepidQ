@@ -302,7 +302,7 @@ async def handle_chat_message(user_input: str, history: list, agent, interface: 
         else:
             result = await agent.ainvoke({"messages": history})
             
-        response = _extract_response_content(result["messages"][-1].content)
+        response = _normalize_content(result["messages"][-1].content)
         history.append(AIMessage(content=response))
         
         if interface == "cli":
@@ -545,7 +545,7 @@ async def run_chat_loop(initial_ticker: str | None = None) -> None:
         with console.status("[bold green]Thinking...[/bold green]"):
             msgs = _history_to_messages(chat_history)
             result = await agent.ainvoke({"messages": msgs})
-            response = _extract_response_content(result["messages"][-1].content)
+            response = _normalize_content(result["messages"][-1].content)
         chat_history.append({"role": "assistant", "content": response})
         console.print("\n[bold blue]AI:[/bold blue]")
         console.print(Markdown(response))
@@ -668,6 +668,8 @@ def whatsapp_run_bot():
                 content = event.get("content")
                 if content == "READY":
                     console.print("[bold green]✅ WhatsApp Bot CONNECTED and Ready![/bold green]")
+                    if whatsapp_send_func and config.WHATSAPP_DEFAULT_TO_NUMBER:
+                        whatsapp_send_func(config.WHATSAPP_DEFAULT_TO_NUMBER, "🤖 *FIntrepidQ Status*: Bot is now ONLINE and ready for signals.")
                 elif content == "HEARTBEAT":
                     # Periodic log to show listener is still alive
                     console.print("[dim]💓 Heartbeat received from listener...[/dim]")
