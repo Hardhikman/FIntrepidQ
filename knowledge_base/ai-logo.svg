@@ -1,0 +1,52 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Premium Gradients -->
+    <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#3b82f6" /> <!-- Emerald to Blue for AI tech feel -->
+    </linearGradient>
+    
+    <radialGradient id="center-glow" cx="256" cy="256" r="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Neural Glow Filter -->
+    <filter id="neural-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0f172a" rx="40" />
+  <circle cx="256" cy="256" r="200" fill="url(#center-glow)" />
+
+  <!-- Neural Network Patterns (Background Geometry) -->
+  <g opacity="0.3" stroke="#10b981" stroke-width="1">
+    <circle cx="256" cy="120" r="4" fill="#10b981" />
+    <circle cx="156" cy="200" r="4" fill="#10b981" />
+    <circle cx="356" cy="200" r="4" fill="#10b981" />
+    <circle cx="200" cy="350" r="4" fill="#10b981" />
+    <circle cx="312" cy="350" r="4" fill="#10b981" />
+    
+    <line x1="256" y1="120" x2="156" y2="200" />
+    <line x1="256" y1="120" x2="356" y2="200" />
+    <line x1="156" y1="200" x2="200" y2="350" />
+    <line x1="356" y1="200" x2="312" y2="350" />
+    <line x1="200" y1="350" x2="312" y2="350" />
+    <line x1="156" y1="200" x2="356" y2="200" />
+  </g>
+
+  <!-- Core 'Q' / AI Brain Symbol -->
+  <path d="M256 140C191.935 140 140 191.935 140 256C140 320.065 191.935 372 256 372C281.424 372 304.881 363.858 324 350L380 406" 
+        stroke="url(#ai-grad)" 
+        stroke-width="36" 
+        stroke-linecap="round" 
+        filter="url(#neural-glow)" />
+        
+  <!-- Floating Tech Bits -->
+  <rect x="248" y="240" width="16" height="32" rx="4" fill="#fbbf24" opacity="0.8">
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite" />
+  </rect>
+</svg>

@@ -82,9 +82,7 @@
     <aside class="w-64 border-r border-slate-800 flex-shrink-0 flex flex-col fixed h-full z-20 bg-[#0f172a]">
         <a href="index.html" class="p-6 border-b border-slate-800 block hover:bg-white/5 transition-all">
             <div class="flex items-center space-x-3">
-                <div
-                    class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-slate-900">
-                    F</div>
+                <img src="ai-logo.svg" alt="FIntrepidQ AI Logo" class="w-8 h-8 rounded-lg">
                 <span class="font-bold text-xl text-white tracking-tight">IntrepidQ</span>
             </div>
         </a>
@@ -111,19 +109,23 @@
                 <span class="text-xl">🛡️</span>
                 <span class="font-medium">Quality & Troubleshooting</span>
             </a>
-            <a href="#roadmap" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
-                <span class="text-xl">🚀</span>
-                <span class="font-medium">Portfolio & Roadmap</span>
+            <a href="#database" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">🗄️</span>
+                <span class="font-medium">Database & Persistence</span>
             </a>
             <a href="#whatsapp" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
                 <span class="text-xl">📱</span>
                 <span class="font-medium">WhatsApp Bot</span>
             </a>
+            <a href="#roadmap" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">🚀</span>
+                <span class="font-medium">Portfolio & Roadmap</span>
+            </a>
         </nav>
 
         <div class="p-6 border-t border-slate-800 text-xs text-slate-500">
-            v5.1 Master Edition<br>
-            Updated: Feb 16, 2026
+            v6.0 Master Edition<br>
+            Updated: Feb 18, 2026
         </div>
     </aside>
 
@@ -151,6 +153,15 @@
             </h2>
             <div class="grid gap-4">
                 <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Core Problem</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What problem does FIntrepidQ solve?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Equity analysts waste hours reading scattered data sources. FIntrepidQ automates the entire
+                        research loop — from raw API data to a professional investment thesis — in under <strong>30
+                            seconds</strong>, with guaranteed quantitative accuracy.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
                     <div class="qa-tag mb-3">ReAct Pattern</div>
                     <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the "ReAct" pattern used in the
                         agents?</h3>
@@ -169,6 +180,25 @@
                         detail, the final report has 100% quantitative accuracy.
                     </p>
                 </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Tech Stack</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What technologies power the system?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>LangGraph</strong> for agent orchestration, <strong>Google Gemini</strong> for AI,
+                        <strong>yfinance + Alpha Vantage</strong> for financial APIs, <strong>Rust (PyO3)</strong> for
+                        high-performance calculations, <strong>Rich</strong> for CLI, and <strong>tenacity</strong> for
+                        retry logic.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Report Format</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the compact report format?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Every report follows a strict 5-section structure: <strong>Verdict → Key Metrics Table → Green
+                            Flags → Red Flags → Investment Thesis</strong>. All flags are tagged with one of the 7 hedge
+                        fund categories (e.g., <code>[FUNDAMENTAL]</code>, <code>[MOMENTUM]</code>).
+                    </p>
+                </div>
             </div>
         </section>
 
@@ -179,23 +209,60 @@
             </h2>
             <div class="grid gap-4">
                 <div class="content-card p-6 rounded-2xl">
-                    <div class="qa-tag mb-3">Data Models</div>
-                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the purpose of Pydantic models here?
-                    </h3>
+                    <div class="qa-tag mb-3">4-Agent Pipeline</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the responsibilities of the 4
+                        Agents?</h3>
                     <p class="text-slate-400 leading-relaxed">
-                        The <code>utils/models.py</code> file defines a "Pydantic Shield." It enforces strict types and
+                        <strong>1. Data Agent</strong> — Collects financials, news, and strategic triggers with retry
+                        logic.<br>
+                        <strong>2. Validation Agent</strong> — Checks completeness (0-100%) and fixes gaps via Alpha
+                        Vantage.<br>
+                        <strong>3. Analysis Agent</strong> — "Senior Analyst." Generates the investment thesis using
+                        SKILL.md rules.<br>
+                        <strong>4. Synthesis Agent</strong> — "Lead Strategist." Polishes the report, attributes
+                        sources, adds timeline metadata.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Data Models</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the role of Pydantic models?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The <code>utils/models.py</code> file defines a "Pydantic Shield." Models like
+                        <code>Technicals</code>, <code>RiskMetrics</code>, <code>FinancialTrends</code>, and
+                        <code>ICRAnalysis</code> enforce strict types and
                         ranges (e.g., RSI must be 0-100). If the Data Agent returns corrupted data, the system catches
                         it before the Analyst sees it.
                     </p>
                 </div>
                 <div class="content-card p-6 rounded-2xl">
-                    <div class="qa-tag mb-3">Rust Finance</div>
-                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How are technical indicators like SMA 200W
-                        calculated?</h3>
+                    <div class="qa-tag mb-3">Confidence Scoring</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does the Validation Agent assign
+                        confidence?</h3>
                     <p class="text-slate-400 leading-relaxed">
-                        We use a <strong>Rust Acceleration</strong> library (<code>rust_finance</code>). It handles RSI,
-                        MACD, and the 200-week SMA. The 200-week SMA is critical as it serves as our "Macro Cycle
-                        Baseline" for value detection.
+                        It uses a two-axis system: <strong>≥ 80% completeness + ≥ 90% critical metrics = High</strong>.
+                        <strong>≥ 60% + ≥ 70% = Medium</strong>. Below that = <strong>Low</strong>. Critical metrics
+                        include price, market cap, revenue growth, margins, P/E, debt/equity, FCF, and ROE.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Agent Roles</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the difference between the Analysis
+                        Agent and Synthesis Agent?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The <strong>Analysis Agent</strong> is the "builder" — it generates the full structured report
+                        using SKILL.md rules on raw JSON. The <strong>Synthesis Agent</strong> is the "editor" — it
+                        integrates validation metadata, cross-references sources, polishes tone, and adds timeline
+                        context. Both receive identical raw data.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Rust Finance</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the Rust Acceleration library?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The <code>rust_finance</code> library is a Python extension written in Rust (PyO3).
+                        <code>technicals.rs</code> handles RSI, SMA, MACD. <code>risk.rs</code> handles Volatility,
+                        Sharpe, VaR, Max Drawdown. <code>utils.rs</code> handles Trend detection. Rust is orders of
+                        magnitude faster than pure Python for numerical loops.
                     </p>
                 </div>
                 <div class="content-card p-6 rounded-2xl">
@@ -205,6 +272,16 @@
                         It's a high-fidelity delivery protocol for the WhatsApp bot. It wraps multiline investment
                         reports into a single JSON object for transmission, ensuring no truncation or formatting loss
                         between Python and Node.js.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Skills</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the <code>load_skill</code> tool?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        It is the Analysis Agent's primary tool. It loads a specialized "skill framework" (like
+                        <code>equity_trigger_analysis/SKILL.md</code>) containing preset rules, thresholds, and report
+                        templates that guide the agent's analysis logic.
                     </p>
                 </div>
             </div>
@@ -233,6 +310,45 @@
                         to <code>TSLA</code>, prioritizing symbols in parentheses if found.
                     </p>
                 </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Human-in-the-Loop</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the Human-in-the-Loop save flow?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        After analysis, the system pauses and asks: <strong>yes</strong> = save to file AND database,
+                        <strong>no</strong> = save to file only, <strong>cancel</strong> = discard. Use
+                        <code>--auto-save</code> to bypass the prompt entirely.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Sector Comparison</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does the <code>/compare</code> command
+                        work?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <code>/compare TSLA</code> triggers automated competitor discovery, fetches institutional
+                        metrics for all peers, computes industry averages, and pulls strategic news. Output includes a
+                        12-column benchmark table, a signal dashboard, and a data-driven Sector Verdict.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Date Cleanup</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How do I clean up old reports by date?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Use <code>cleanup-by-date --before 2025-12-08</code> or <code>--older-than 7</code> (days). Add
+                        <code>--ticker TSLA</code> to filter, and always use <code>--dry-run</code> first to preview
+                        what will be deleted.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">File Sync</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does file cleanup sync with database
+                        cleanup?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        When <code>save_analysis_to_memory()</code> runs auto-cleanup, it also deletes old
+                        <code>.md</code> files from <code>reports/</code>. For manual sync, run
+                        <code>cleanup-files</code> which keeps the latest N files per ticker aligned with the database.
+                    </p>
+                </div>
             </div>
         </section>
 
@@ -242,6 +358,14 @@
                 <span class="mr-3">📈</span> Signal Engine
             </h2>
             <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Institutional Metrics</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the "Big 7" categories?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Every report is structured by: 1. FUNDAMENTAL, 2. VALUATION, 3. QUALITY, 4. MOMENTUM, 5. RISK,
+                        6. SENTIMENT, and 7. DIVIDEND. This ensures no professional blind spots.
+                    </p>
+                </div>
                 <div class="content-card p-6 rounded-2xl">
                     <div class="qa-tag mb-3">Green Flags</div>
                     <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the "Self-funded growth" detection
@@ -262,11 +386,44 @@
                     </p>
                 </div>
                 <div class="content-card p-6 rounded-2xl">
-                    <div class="qa-tag mb-3">Institutional Metrics</div>
-                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the "Big 7" categories?</h3>
+                    <div class="qa-tag mb-3">Macro Cycle</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the 200-Week SMA and why is it
+                        important?</h3>
                     <p class="text-slate-400 leading-relaxed">
-                        Every report is structured by: 1. FUNDAMENTAL, 2. VALUATION, 3. QUALITY, 4. MOMENTUM, 5. RISK,
-                        6. SENTIMENT, and 7. DIVIDEND. This ensures no professional blind spots.
+                        The 200-Week SMA serves as the <strong>Macro Cycle Baseline</strong>. When a stock's price drops
+                        below this level, it historically represents a significant long-term buying opportunity. It
+                        filters out short-term noise and identifies deep-value entry points.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Crossovers</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does Golden Cross / Death Cross
+                        detection work?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>Golden Cross</strong>: SMA 50 crosses <em>above</em> SMA 200 → Strong bullish
+                        signal.<br>
+                        <strong>Death Cross</strong>: SMA 50 crosses <em>below</em> SMA 200 → Strong bearish signal.<br>
+                        Auto-detected from 2-year price history, tagged under <code>[MOMENTUM]</code>.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Solvency</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the ICR (Interest Coverage Ratio)
+                        risk levels?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>&gt; 3.0 = Strong</strong> (comfortably covers debt). <strong>1.5 – 3.0 = Fair</strong>
+                        (adequate but monitor). <strong>&lt; 1.5 = Risk</strong> (high default risk). The system also
+                        tracks ICR trend YoY under <code>[QUALITY]</code>.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Correlation</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does Strategic Correlation Analysis
+                        work?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Cross-references CapEx and Debt trends: <strong>CapEx↑ + Debt↓ = 🟢 Self-funded growth</strong>.
+                        CapEx↑ + Debt↑ = 🟡 Leveraged expansion. CapEx↓ + Debt↓ = ⚪ Conservative. <strong>CapEx↓ + Debt↑
+                            = 🚩 Deteriorating</strong>.
                     </p>
                 </div>
             </div>
@@ -289,6 +446,27 @@
                     </p>
                 </div>
                 <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Metric Tiers</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the Critical, Optional, and
+                        Advanced metric tiers?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>Critical (8)</strong>: price, market cap, revenue growth, margins, P/E, debt/equity,
+                        FCF, ROE. <strong>Optional (6)</strong>: forward P/E, PEG, dividend yield, payout ratio, ROA,
+                        operating cashflow. <strong>Advanced (5)</strong>: technicals, risk metrics, financial trends,
+                        volume, dividends.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Low Completeness</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What happens if data completeness is below
+                        70%?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The report automatically includes a <strong>⚠️ Data Quality Warning</strong> section listing
+                        missing critical metrics, analysis confidence level, and specific limitations. The agent will
+                        not issue a strong Buy/Sell verdict.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
                     <div class="qa-tag mb-3">Warnings</div>
                     <h3 class="text-lg font-semibold text-emerald-400 mb-2">Why do I see "gzip response" warnings in the
                         logs?</h3>
@@ -298,33 +476,61 @@
                         from Alpha Vantage.
                     </p>
                 </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Logging</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the structured logging system?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>Dual logging</strong>: 1) Rich CLI Output — live progress table with phase spinners and
+                        timing. 2) JSON File Logging — rotating files (10MB max, 5 backups) with specialized loggers:
+                        <code>analysis_logger</code>, <code>api_logger</code>, <code>error_logger</code>.
+                    </p>
+                </div>
             </div>
         </section>
 
-        <!-- Section: Portfolio & Roadmap -->
-        <section id="roadmap" class="mb-16 scroll-mt-8">
+        <!-- Section: Database & Persistence (NEW) -->
+        <section id="database" class="mb-16 scroll-mt-8">
             <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
-                <span class="mr-3">🚀</span> Portfolio & Roadmap
+                <span class="mr-3">🗄️</span> Database & Persistence
             </h2>
             <div class="grid gap-4">
                 <div class="content-card p-6 rounded-2xl">
-                    <div class="qa-tag mb-3">Portfolio Mode</div>
-                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does the Zerodha Kite integration work?
-                    </h3>
+                    <div class="qa-tag mb-3">Schema</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the database schema?</h3>
                     <p class="text-slate-400 leading-relaxed">
-                        It uses the <strong>Personal Tier API</strong> (which is free). It fetches your holdings once a
-                        day, calculates your cost-basis, and runs the analysis pipeline to detect "Thesis Drift" (when a
-                        stock you bought for growth is no longer growing).
+                        SQLite (<code>equity_ai.db</code>) with an <code>analysis_reports</code> table: <code>id</code>,
+                        <code>session_id</code> (unique), <code>user_id</code>, <code>ticker</code>, <code>report</code>
+                        (full markdown), and <code>created_at</code>. Performance indexes on <code>ticker</code> and
+                        <code>(ticker, created_at DESC)</code>.
                     </p>
                 </div>
                 <div class="content-card p-6 rounded-2xl">
-                    <div class="qa-tag mb-3">Earnings Scheduler</div>
-                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">Does it monitor earnings results
-                        automatically?</h3>
+                    <div class="qa-tag mb-3">Retention</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the retention policy?</h3>
                     <p class="text-slate-400 leading-relaxed">
-                        Yes. It tracks the <code>stock.calendar</code> from yfinance. It schedules a check <strong>7
-                            days before</strong> earnings to set a baseline and <strong>3 days after</strong> to capture
-                        the new financial statements.
+                        By default, the system keeps the <strong>latest 3 reports per ticker</strong> and auto-deletes
+                        older ones. Configurable via <code>REPORTS_TO_KEEP</code> in <code>memory.py</code> or
+                        <code>DB_RETENTION.ACTIVE_REPORTS_PER_TICKER</code> in <code>config.py</code>.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Backup</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How do I backup and reset the database?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>Backup</strong>: <code>copy equity_ai.db equity_ai_backup.db</code>.
+                        <strong>Reset</strong>: Delete the file and run
+                        <code>python -c "from context_engineering.memory import init_db; init_db()"</code> to create a
+                        fresh one.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Deployment</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What deployment options exist for 24/7
+                        operation?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>Local</strong>: Free via PM2 or Windows Startup folder. <strong>Cloud</strong>:
+                        ~$5/month via Railway, Render, or a Linux VPS. Cloud provides 99.9% uptime. Start local, then
+                        migrate to cloud when comfortable.
                     </p>
                 </div>
             </div>
@@ -352,6 +558,91 @@
                         Yes. The Synthesis Agent generates an "Executive Summary" specifically for mobile consumption.
                         It uses the <code>JSON_SEND</code> protocol to ensure multiline reports are delivered in one
                         stable block without truncation.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Heartbeat</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the Heartbeat telemetry system?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The bot prints a heartbeat signal every <strong>5 seconds</strong> to the CLI console,
+                        confirming the Python ↔ Node.js communication pipe is healthy. If heartbeats stop, the pipe has
+                        broken and needs restarting.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Troubleshooting</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are common WhatsApp bot troubleshooting
+                        steps?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>"Bot stopped."</strong> — Ensure Node.js is installed. <strong>No Response</strong> —
+                        Check for <code>✅ WhatsApp Bot CONNECTED</code> in console. <strong>429 error</strong> — Gemini
+                        API rate limit, wait 60s. <strong>Invalid Ticker</strong> — Try the explicit symbol (e.g.,
+                        "TSLA").
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Portfolio & Roadmap -->
+        <section id="roadmap" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">🚀</span> Portfolio & Roadmap
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Portfolio Mode</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does the Zerodha Kite integration work?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        It uses the <strong>Personal Tier API</strong> (which is free). It fetches your holdings once a
+                        day, calculates your cost-basis, and runs the analysis pipeline to detect "Thesis Drift" (when a
+                        stock you bought for growth is no longer growing).
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Thesis Drift</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is "Thesis Drift"?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        When the current report's verdict flips compared to the previous one (e.g., <strong>BUY →
+                            SELL</strong>) or red flags increase significantly, the system triggers a <strong>Thesis
+                            Drift Alert</strong> via WhatsApp.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Earnings Scheduler</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">Does it monitor earnings results
+                        automatically?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Yes. It tracks the <code>stock.calendar</code> from yfinance. It schedules a check <strong>7
+                            days before</strong> earnings to set a baseline and <strong>3 days after</strong> to capture
+                        the new financial statements.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Planned</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the planned Portfolio Analysis Mode?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        A <code>/portfolio AAPL, TSLA, NVDA</code> command that calculates portfolio-level metrics:
+                        weighted volatility, Sharpe Ratio, sector allocation, and a correlation matrix to identify
+                        concentration risk.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Planned</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are Real-time Monitoring Alerts?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        A planned <code>/alert AAPL price_above 200</code> command that stores custom conditions in the
+                        database and periodically checks them against live data, notifying the user when triggers fire.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Planned</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What data visualizations are planned?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Three chart types using Altair: <strong>Annual Trends</strong> (Revenue, Net Income, Debt, CapEx
+                        bar chart), <strong>Quarterly Trends</strong> (same metrics, 4 quarters), and <strong>Price +
+                            SMA</strong> (line chart with SMA 50, 200, and 200W).
                     </p>
                 </div>
             </div>

@@ -1,0 +1,35 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dynamic Background Glow -->
+  <defs>
+    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Circular Base (Institutional Feel) -->
+  <circle cx="256" cy="256" r="230" fill="#0f172a" />
+  
+  <!-- The Stylized 'Q' + Trend Line -->
+  <!-- Outer Ring of Q -->
+  <path d="M256 120C180.889 120 120 180.889 120 256C120 331.111 180.889 392 256 392C288.583 392 318.529 380.59 342.158 361.5L400 420" 
+        stroke="url(#logo-grad)" 
+        stroke-width="32" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Inner Chart Line (Representing the 'Intrepid' growth) -->
+  <path d="M180 300L240 240L290 280L360 170" 
+        stroke="#10b981" 
+        stroke-width="24" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        filter="url(#glow)"/>
+  
+  <!-- Decorative Accent Points -->
+  <circle cx="360" cy="170" r="8" fill="#fbbf24" /> <!-- Gold data point -->
+</svg>
