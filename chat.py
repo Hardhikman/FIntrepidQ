@@ -208,12 +208,13 @@ async def handle_chat_message(user_input: str, history: list, agent, interface: 
     if content_lower == "/help":
         help_text = (
             "*Commands:*\n"
-            "- analyze [ticker] : Start full analysis\n"
-            "- /compare [ticker]: Compare stock with sector peers\n"
-            "- /tickers : List analyzed tickers\n"
-            "- /help : Show this message\n"
-            "- /clear : Clear history\n"
-            "- /exit : Exit chat"
+            "- /analyze [ticker]     : Start full analysis (e.g., /analyze TSLA)\n"
+            "- /compare [ticker]     : Compare stock with sector peers (e.g., /compare AAPL)\n"
+            "- /compare [t1] [t2]    : Compare two or more stocks directly (e.g., /compare google vs amazon, /compare NVDA AMD INTC)\n"
+            "- /tickers              : List analyzed tickers\n"
+            "- /help                 : Show this message\n"
+            "- /clear                : Clear history\n"
+            "- /exit                 : Exit chat"
         )
         if interface == "cli":
             console.print(Panel(help_text.replace("*", ""), title="Help"))
@@ -221,7 +222,7 @@ async def handle_chat_message(user_input: str, history: list, agent, interface: 
         return f"🤖 {help_text}", True
 
     # ANALYZE
-    if content_lower.startswith("analyze "):
+    if content_lower.startswith("analyze ") or content_lower.startswith("/analyze "):
         ticker_input = user_input.split(None, 1)[1].strip()
         
         # Resolve ticker for consistent graph execution
@@ -280,10 +281,20 @@ async def handle_chat_message(user_input: str, history: list, agent, interface: 
     if content_lower.startswith("/compare "):
         parts = user_input.split(maxsplit=1)
         if len(parts) > 1:
-            ticker = parts[1].strip().upper()
-            user_input = f"Compare {ticker} with its sector peers."
+            query = parts[1].strip()
+            
+            # Simple heuristic: if query has " and ", " vs ", or comma, treat as multi-ticker
+            # Also if it looks like multiple space-separated tickers
+            is_multi = any(x in query.lower() for x in [" and ", " vs ", ",", " & "]) or len(query.split()) > 1
+            
+            if is_multi:
+                 user_input = f"Compare the following: {query}"
+            else:
+                 # Single ticker -> Sector comparison
+                 ticker = query.upper()
+                 user_input = f"Compare {ticker} with its sector peers."
         else:
-            msg = "Usage: /compare [ticker]"
+            msg = "Usage: /compare [ticker] OR /compare [ticker1] [ticker2]..."
             return f"🤖 {msg}" if interface == "whatsapp" else f"[red]{msg}[/red]", True
 
     # WHATSAPP LOGIN (CLI only)
@@ -525,11 +536,12 @@ async def run_chat_loop(initial_ticker: str | None = None) -> None:
         Panel.fit(
             "[bold cyan]🤖 FIntrepidQ Equity Chat[/bold cyan]\n\n"
             "Ask questions about your analyzed stocks or use commands:\n"
-            "- [bold yellow]analyze [ticker][/bold yellow]  : Run a full deep-dive analysis\n"
-            "- [bold yellow]/compare [ticker][/bold yellow] : Benchmark against sector peers\n"
-            "- [bold yellow]/tickers[/bold yellow]         : List all analyzed stocks\n"
-            "- [bold yellow]/help[/bold yellow]            : Show all available commands\n"
-            "- [bold yellow]/exit[/bold yellow]            : Exit the chat interface",
+            "- [bold yellow]/analyze [ticker][/bold yellow]     : Run a full deep-dive analysis (e.g., /analyze TSLA)\n"
+            "- [bold yellow]/compare [ticker][/bold yellow]     : Benchmark against sector peers (e.g., /compare AAPL)\n"
+            "- [bold yellow]/compare [t1] [t2][/bold yellow]    : Compare two or more stocks directly (e.g., /compare google vs amazon, /compare NVDA AMD INTC)\n"
+            "- [bold yellow]/tickers[/bold yellow]              : List all analyzed stocks\n"
+            "- [bold yellow]/help[/bold yellow]                 : Show all available commands\n"
+            "- [bold yellow]/exit[/bold yellow]                 : Exit the chat interface",
             border_style="cyan",
         )
     )
@@ -613,12 +625,14 @@ def whatsapp_run_bot():
     Run the WhatsApp bot listener.
     Listens for incoming messages and replies using the AI agent.
     """
+    asyncio.run(run_whatsapp_bot_main())
+
+async def run_whatsapp_bot_main():
     from tools.whatsapp_client import WhatsAppClient
     from agents.chat_agent import build_chat_agent
-    from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+    from langchain_core.messages import SystemMessage
     from context_engineering.prompts import chat_agent_prompt
-    import asyncio
-
+    
     console.print(Panel.fit("[bold green]WhatsApp Bot Listener Running...[/bold green]\nWaiting for messages...", border_style="green"))
     
     client = WhatsAppClient()
@@ -626,7 +640,6 @@ def whatsapp_run_bot():
 
     # We need a way to manage conversation history per user (phone number)
     # For simplicity in this CLI version, we'll keep a simple in-memory dict
-    # format: {phone_number: [message_history]}
     conversations = {}
     
     # Store the sender function from the listener
@@ -637,6 +650,8 @@ def whatsapp_run_bot():
         whatsapp_send_func = func
 
     try:
+        # Run the blocking generator in a loop
+        # Since this is a simple bot, we'll just process messages sequentially
         for event in client.listen_for_messages(provide_input_channel=set_send_func):
             if event.get("type") == "message":
                 sender = event.get("sender")
@@ -649,24 +664,24 @@ def whatsapp_run_bot():
                 
                 history = conversations[sender]
                 
-                async def process_and_reply():
-                    response, _ = await handle_chat_message(
-                        content, 
-                        history, 
-                        agent, 
-                        interface="whatsapp", 
-                        sender_id=sender,
-                        send_func=whatsapp_send_func
-                    )
-                    if response and whatsapp_send_func:
-                        console.print(f"[green]📤 Replying to {sender}:[/green] {response[:50]}...")
-                        whatsapp_send_func(sender, response)
-
-                asyncio.run(process_and_reply())
+                # Process the message in the current event loop
+                response, _ = await handle_chat_message(
+                    content, 
+                    history, 
+                    agent, 
+                    interface="whatsapp", 
+                    sender_id=sender,
+                    send_func=whatsapp_send_func
+                )
+                
+                if response and whatsapp_send_func:
+                    console.print(f"[green]📤 Replying to {sender}:[/green] {response[:50]}...")
+                    whatsapp_send_func(sender, response)
                 
             elif event.get("type") == "system":
                 content = event.get("content")
                 if content == "READY":
+                    console.print("[dim red]Debug: READY event received in Python[/dim red]")
                     console.print("[bold green]✅ WhatsApp Bot CONNECTED and Ready![/bold green]")
                     if whatsapp_send_func and config.WHATSAPP_DEFAULT_TO_NUMBER:
                         whatsapp_send_func(config.WHATSAPP_DEFAULT_TO_NUMBER, "🤖 *FIntrepidQ Status*: Bot is now ONLINE and ready for signals.")

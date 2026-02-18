@@ -12,7 +12,8 @@ async function startListener() {
     try {
         const sock = await initWASocket();
 
-        // Mudslide's initWASocket handles auth state loading automatically.
+        const startTime = Math.floor(Date.now() / 1000);
+        console.error(`Debug: Listener started at ${startTime}`);
 
         sock.ev.on('connection.update', (update) => {
             const { connection, lastDisconnect } = update;
@@ -26,6 +27,15 @@ async function startListener() {
         sock.ev.on('messages.upsert', async m => {
             if (m.type === 'notify') {
                 for (const msg of m.messages) {
+                    const messageTimestamp = msg.messageTimestamp;
+
+                    // Filter out messages that were received before the bot started
+                    // Use a 5-second buffer to allow for slight clock drift or sync latency
+                    if (messageTimestamp < startTime - 5) {
+                        console.error(`Debug: Skipping old message from ${msg.key.remoteJid} (timestamp: ${messageTimestamp}, start: ${startTime})`);
+                        continue;
+                    }
+
                     console.error(`Debug: Received message from ${msg.key.remoteJid} (fromMe: ${msg.key.fromMe})`);
 
                     const content = msg.message?.conversation || msg.message?.extendedTextMessage?.text;

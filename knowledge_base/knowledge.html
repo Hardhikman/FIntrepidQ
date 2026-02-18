@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base - FIntrepidQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            transform: translateX(5px);
+        }
+
+        .sidebar-active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border-left: 4px solid #10b981;
+        }
+
+        .content-card {
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .content-card:hover {
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .qa-tag {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        .search-focus:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f172a] text-slate-300 min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-slate-800 flex-shrink-0 flex flex-col fixed h-full z-20 bg-[#0f172a]">
+        <a href="index.html" class="p-6 border-b border-slate-800 block hover:bg-white/5 transition-all">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-slate-900">
+                    F</div>
+                <span class="font-bold text-xl text-white tracking-tight">IntrepidQ</span>
+            </div>
+        </a>
+
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+            <a href="#general"
+                class="sidebar-item sidebar-active block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">⚡</span>
+                <span class="font-medium">General & Vision</span>
+            </a>
+            <a href="#architecture" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">🤖</span>
+                <span class="font-medium">Deep Architecture</span>
+            </a>
+            <a href="#operations" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">⚙️</span>
+                <span class="font-medium">Operations & CLI</span>
+            </a>
+            <a href="#signals" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">📈</span>
+                <span class="font-medium">Signal Engine</span>
+            </a>
+            <a href="#troubleshooting" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">🛡️</span>
+                <span class="font-medium">Quality & Troubleshooting</span>
+            </a>
+            <a href="#roadmap" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">🚀</span>
+                <span class="font-medium">Portfolio & Roadmap</span>
+            </a>
+            <a href="#whatsapp" class="sidebar-item block px-4 py-3 rounded-xl flex items-center space-x-3">
+                <span class="text-xl">📱</span>
+                <span class="font-medium">WhatsApp Bot</span>
+            </a>
+        </nav>
+
+        <div class="p-6 border-t border-slate-800 text-xs text-slate-500">
+            v5.1 Master Edition<br>
+            Updated: Feb 16, 2026
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 p-8 lg:p-12 max-w-6xl">
+
+        <!-- Header & Search -->
+        <header class="mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">Knowledge Base</h1>
+            <p class="text-slate-400 max-w-2xl mb-8">Granular Q&A spanning 15+ documentation files. Technical details,
+                operational flags, and institutional financial logic.</p>
+
+            <div class="relative max-w-xl">
+                <input type="text" id="searchInput"
+                    placeholder="Search for concepts (e.g. 'RSI', 'Kite', 'Pydantic')..."
+                    class="w-full bg-slate-900 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-slate-200 search-focus transition-all">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+            </div>
+        </header>
+
+        <!-- Section: General & Vision -->
+        <section id="general" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">⚡</span> General & Vision
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">ReAct Pattern</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the "ReAct" pattern used in the
+                        agents?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong>Reasoning + Acting</strong>: It forces the AI to explain its logic ("Thought") before
+                        calling a tool. It then makes the call, observes the result, and repeats. This eliminates
+                        hallucination by grounding every claim in real API data.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Hybrid Flow</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does "Hybrid Data Flow" work?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The system intercepts the <strong>raw JSON</strong> from tool message history and passes it
+                        directly to the Synthesis agent. This ensures that even if an agent's narrative summary misses a
+                        detail, the final report has 100% quantitative accuracy.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Deep Architecture -->
+        <section id="architecture" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">🤖</span> Deep Architecture
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Data Models</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the purpose of Pydantic models here?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The <code>utils/models.py</code> file defines a "Pydantic Shield." It enforces strict types and
+                        ranges (e.g., RSI must be 0-100). If the Data Agent returns corrupted data, the system catches
+                        it before the Analyst sees it.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Rust Finance</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How are technical indicators like SMA 200W
+                        calculated?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        We use a <strong>Rust Acceleration</strong> library (<code>rust_finance</code>). It handles RSI,
+                        MACD, and the 200-week SMA. The 200-week SMA is critical as it serves as our "Macro Cycle
+                        Baseline" for value detection.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Communication</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the JSON_SEND protocol?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        It's a high-fidelity delivery protocol for the WhatsApp bot. It wraps multiline investment
+                        reports into a single JSON object for transmission, ensuring no truncation or formatting loss
+                        between Python and Node.js.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Operations & CLI -->
+        <section id="operations" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">⚙️</span> Operations & CLI
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">CLI Flags</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the key automation flags?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Use <code>--auto-save</code> to skip the confirmation prompt. Use <code>--no-save-file</code> to
+                        only save reports to the database without cluttering your local <code>reports/</code> folder.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Ticker Resolution</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">Can I use company names instead of tickers?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Yes. Running <code>python chat.py analyze "Tesla"</code> uses smart resolution to map the name
+                        to <code>TSLA</code>, prioritizing symbols in parentheses if found.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Signal Engine -->
+        <section id="signals" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">📈</span> Signal Engine
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Green Flags</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What is the "Self-funded growth" detection
+                        logic?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        The system checks: If <strong>CapEx trend is Increasing</strong> and <strong>Debt trend is
+                            Decreasing</strong>, it flags it as institutional-grade self-funded growth. This is one of
+                        our highest-conviction green flags.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Momentum</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How is a "Volume Spike" defined?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        A volume spike is defined as trading volume exceeding <strong>1.5 times the 50-day moving
+                            average</strong>. This signifies high institutional interest and is a key indicator for
+                        momentum signals.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Institutional Metrics</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What are the "Big 7" categories?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Every report is structured by: 1. FUNDAMENTAL, 2. VALUATION, 3. QUALITY, 4. MOMENTUM, 5. RISK,
+                        6. SENTIMENT, and 7. DIVIDEND. This ensures no professional blind spots.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Quality & Troubleshooting -->
+        <section id="troubleshooting" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">🛡️</span> Quality & Troubleshooting
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Confidence Score</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">What constitutes "High Confidence" data?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        High Confidence requires <strong>80% overall completeness</strong> and at least <strong>90% of
+                            critical metrics</strong> (Price, Revenue, Net Income, etc.) to be present. The agent will
+                        refuse a strong verdict if confidence is low.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Warnings</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">Why do I see "gzip response" warnings in the
+                        logs?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        This is a <code>yfinance</code> artifact when an API endpoint returns no data for a specific
+                        field. FIntrepidQ catches this automatically and substitutes the missing value with N/A or data
+                        from Alpha Vantage.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Portfolio & Roadmap -->
+        <section id="roadmap" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">🚀</span> Portfolio & Roadmap
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Portfolio Mode</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How does the Zerodha Kite integration work?
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        It uses the <strong>Personal Tier API</strong> (which is free). It fetches your holdings once a
+                        day, calculates your cost-basis, and runs the analysis pipeline to detect "Thesis Drift" (when a
+                        stock you bought for growth is no longer growing).
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Earnings Scheduler</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">Does it monitor earnings results
+                        automatically?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Yes. It tracks the <code>stock.calendar</code> from yfinance. It schedules a check <strong>7
+                            days before</strong> earnings to set a baseline and <strong>3 days after</strong> to capture
+                        the new financial statements.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: WhatsApp Bot -->
+        <section id="whatsapp" class="mb-16 scroll-mt-8">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+                <span class="mr-3">📱</span> WhatsApp Bot Integration
+            </h2>
+            <div class="grid gap-4">
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Connection</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">How do I connect the WhatsApp Bot?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        1. Run <code>python chat.py whatsapp login</code> and scan the QR code.<br>
+                        2. Run <code>python chat.py whatsapp run-bot</code> to start the listener.<br>
+                        Once connected, the bot acts as a mobile terminal for the entire multi-agent system.
+                    </p>
+                </div>
+                <div class="content-card p-6 rounded-2xl">
+                    <div class="qa-tag mb-3">Mobile Features</div>
+                    <h3 class="text-lg font-semibold text-emerald-400 mb-2">Are reports formatted for mobile?</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Yes. The Synthesis Agent generates an "Executive Summary" specifically for mobile consumption.
+                        It uses the <code>JSON_SEND</code> protocol to ensure multiline reports are delivered in one
+                        stable block without truncation.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer Overlay -->
+        <div class="fixed bottom-8 right-8 flex space-x-4">
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+                class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all">
+                ↑
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // Simple search logic
+        const searchInput = document.getElementById('searchInput');
+        const cards = document.querySelectorAll('.content-card');
+
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                if (text.includes(term)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // Current active section highlighter
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.sidebar-item');
+
+            let current = "";
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 60) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('sidebar-active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('sidebar-active');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

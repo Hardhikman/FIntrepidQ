@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIntrepidQ | Institutional Equity Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --emerald-500: #10b981;
+            --emerald-600: #059669;
+            --slate-900: #0f172a;
+            --slate-950: #020617;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--slate-950);
+            color: #f8fafc;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #ffffff, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-glow {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+            filter: blur(60px);
+            z-index: -1;
+        }
+
+        .btn-primary {
+            background: var(--emerald-500);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary:hover {
+            background: var(--emerald-600);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+
+<body class="overflow-x-hidden">
+
+    <div class="hero-glow"></div>
+
+    <!-- Navigation -->
+    <nav class="flex justify-between items-center px-8 py-6 max-w-7xl mx-auto">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center font-bold text-slate-900">F
+            </div>
+            <span class="font-bold text-xl tracking-tight">FIntrepidQ <span
+                    class="text-emerald-500 font-medium text-sm ml-1">v3.0</span></span>
+        </div>
+        <div class="hidden md:flex space-x-8 text-sm font-medium text-slate-400">
+            <a href="knowledge.html" class="hover:text-emerald-400 transition-colors">Documentation</a>
+            <a href="#features" class="hover:text-emerald-400 transition-colors">Features</a>
+        </div>
+        <a href="knowledge.html"
+            class="glass px-5 py-2 rounded-full text-sm font-semibold hover:bg-white/5 transition-all">
+            Get Started
+        </a>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="pt-24 pb-32 text-center max-w-4xl mx-auto px-6">
+        <div
+            class="inline-block glass px-4 py-1.5 rounded-full text-xs font-bold text-emerald-400 mb-8 tracking-widest uppercase">
+            Institutional-Grade Multi-Agent System
+        </div>
+        <h1 class="text-5xl md:text-7xl font-bold mb-8 leading-[1.1] tracking-tight text-gradient">
+            Equity Analysis, <br>Reinvented by AI.
+        </h1>
+        <p class="text-xl text-slate-400 mb-12 leading-relaxed max-w-2xl mx-auto">
+            Solve "Context Fatigue" with an autonomous pipeline that moves from raw data to
+            institutional-grade investment thesis in seconds.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <a href="knowledge.html"
+                class="btn-primary w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-slate-900">
+                Explore Documentation
+            </a>
+        </div>
+    </header>
+
+    <!-- Features Grid -->
+    <section id="features" class="max-w-7xl mx-auto px-6 py-24 border-t border-slate-900">
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="glass p-8 rounded-3xl animate-float">
+                <div
+                    class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 text-2xl">
+                    🤖
+                </div>
+                <h3 class="text-xl font-bold mb-4 text-white">4-Agent Pipeline</h3>
+                <p class="text-slate-400 leading-relaxed text-sm">
+                    Autonomous Data, Validation, Analysis, and Synthesis agents working in parallel for
+                    zero-hallucination reporting.
+                </p>
+            </div>
+            <!-- Feature 2 -->
+            <div class="glass p-8 rounded-3xl animate-float" style="animation-delay: 1s;">
+                <div
+                    class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 text-2xl">
+                    📱
+                </div>
+                <h3 class="text-xl font-bold mb-4 text-white">WhatsApp Sentinel</h3>
+                <p class="text-slate-400 leading-relaxed text-sm">
+                    Receive P&L alerts, thesis drift notifications, and full investment reports directly on your mobile
+                    device.
+                </p>
+            </div>
+            <!-- Feature 3 -->
+            <div class="glass p-8 rounded-3xl animate-float" style="animation-delay: 2s;">
+                <div
+                    class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 text-2xl">
+                    📊
+                </div>
+                <h3 class="text-xl font-bold mb-4 text-white">Portfolio Sync</h3>
+                <p class="text-slate-400 leading-relaxed text-sm">
+                    Deep integration with Zerodha Kite for real-time monitoring of holdings and automated thesis
+                    tracking.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Content Preview Section -->
+    <section class="max-w-5xl mx-auto px-6 py-24 text-center">
+        <h2 class="text-3xl md:text-5xl font-bold mb-6 text-white text-gradient">Ready to dive in?</h2>
+        <p class="text-slate-400 mb-12 text-lg">Detailed technical guides for RSI flags, Rust-powered technicals, and
+            more.</p>
+
+        <div class="glass p-4 rounded-[2rem] max-w-2xl mx-auto overflow-hidden group">
+            <div
+                class="bg-slate-900 rounded-[1.5rem] p-8 text-left border border-white/5 group-hover:border-emerald-500/30 transition-all">
+                <div class="flex items-center justify-between mb-6">
+                    <span class="text-xs font-bold text-emerald-400 tracking-widest uppercase">Latest Update</span>
+                    <span class="text-xs text-slate-500">v3.1 Stable</span>
+                </div>
+                <h4 class="text-xl font-bold text-white mb-2">Master Knowledge Base</h4>
+                <p class="text-sm text-slate-500 mb-6">Explore the granular Q&A covering 15+ documentation files.</p>
+                <a href="knowledge.html"
+                    class="flex items-center text-emerald-400 font-bold hover:translate-x-2 transition-transform">
+                    Read documentation <span class="ml-2">→</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-slate-900 text-center text-slate-500 text-sm">
+        <p>&copy; 2026 FIntrepidQ. Built for Institutional Equity Analysis.</p>
+    </footer>
+
+</body>
+
+</html>
